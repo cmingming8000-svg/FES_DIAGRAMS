@@ -21,7 +21,7 @@ interface DFDCanvasProps {
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 140; // Increased to match circle diameter better
-const BASE_VIEWBOX_WIDTH = 2300; // Increased to accommodate wider layout
+const BASE_VIEWBOX_WIDTH = 2500; // Increased to accommodate wider layout
 
 // Icon mapping
 const iconMap: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
@@ -56,7 +56,7 @@ export default function DFDCanvas({
   onAuthNodeClick,
 }: DFDCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [viewBox, setViewBox] = useState({ x: -50, y: 0, width: 2300, height: 1200 });
+  const [viewBox, setViewBox] = useState({ x: -50, y: 0, width: 2500, height: 1200 });
   const viewBoxRef = useRef(viewBox);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
@@ -230,7 +230,7 @@ export default function DFDCanvas({
 
   const resetView = useCallback(() => {
     setManualControl(true);
-    setViewBox({ x: -50, y: 0, width: 2300, height: 1200 });
+    setViewBox({ x: -50, y: 0, width: 2500, height: 1200 });
   }, []);
 
   // Pan handling
