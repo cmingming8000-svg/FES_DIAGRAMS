@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DFDCanvas from './components/DFDCanvas';
 import ERDCanvas, { ERDCanvasHandle } from './components/ERDCanvas';
-import ERDInfoPanel from './components/ERDInfoPanel';
 import RolePopup from './components/RolePopup';
 import Legend from './components/Legend';
 import ModeSwitcher, { ViewMode } from './components/ModeSwitcher';
@@ -61,11 +60,6 @@ function App() {
     if (!selectedRole) return 0;
     return roleDescriptions[selectedRole].steps;
   }, [selectedRole]);
-
-  // Selected entity data
-  const selectedEntityData = useMemo(() => {
-    return entities.find((e) => e.id === selectedEntity) || null;
-  }, [selectedEntity]);
 
   const handleSelectRole = useCallback((role: UserRole) => {
     setSelectedRole(role);
@@ -438,19 +432,6 @@ function App() {
                 />
               </>
             )}
-
-
-
-          {/* Info Panel - ERD Mode */}
-          {viewMode === 'erd' && (
-            <div className="absolute top-4 right-4 z-30">
-              <ERDInfoPanel
-                selectedEntity={selectedEntityData}
-                relationships={relationships}
-                entities={entities}
-              />
-            </div>
-          )}
 
           {/* Legend - only show in DFD mode */}
           {viewMode === 'dfd' && (
