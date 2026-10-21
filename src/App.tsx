@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import DFDCanvas from './components/DFDCanvas';
-import ERDCanvas from './components/ERDCanvas';
+import DFDCanvas, { DFDCanvasHandle } from './components/DFDCanvas';
+import ERDCanvas, { ERDCanvasHandle } from './components/ERDCanvas';
 import InfoPanel from './components/InfoPanel';
 import ERDInfoPanel from './components/ERDInfoPanel';
 import RolePopup from './components/RolePopup';
@@ -20,6 +20,10 @@ function App() {
   
   // ERD state
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
+  
+  // Refs to access canvas state
+  const dfdCanvasRef = useRef<DFDCanvasHandle>(null);
+  const erdCanvasRef = useRef<ERDCanvasHandle>(null);
 
   // Get flows relevant to the selected role
   const roleFlows = useMemo(() => {
@@ -99,7 +103,7 @@ function App() {
     setSelectedEntity(null);
   }, []);
 
-  // Keyboard navigation
+  // Keyboard navigation and save positions
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -110,11 +114,154 @@ function App() {
         setCurrentStep((prev) => Math.max(prev - 1, 1));
       } else if (e.key === 'Escape') {
         handleReset();
+      } else if (e.ctrlKey && e.shiftKey && e.code === 'Space') {
+        e.preventDefault();
+        
+        // Get data based on current mode
+        let dataToSave: any;
+        let fileName: string;
+        let title: string;
+        
+        if (viewMode === 'dfd') {
+          // DFD mode - save node positions and zoom
+          const positions = dfdCanvasRef.current?.getPositions() || {};
+          const zoom = dfdCanvasRef.current?.getZoom() || { x: 0, y: 0, width: 2700, height: 1200 };
+          
+          dataToSave = {
+            mode: 'dfd',
+            positions,
+            zoom,
+            selectedRole,
+            currentStep
+          };
+          fileName = 'dfd-positions.json';
+          title = 'DFD Node Positions Saved';
+        } else {
+          // ERD mode - save entity positions, label positions, zoom, and selected entity
+          const entityPositions = erdCanvasRef.current?.getEntityPositions() || {};
+          const labelPositions = erdCanvasRef.current?.getLabelPositions() || {};
+          const zoom = erdCanvasRef.current?.getZoom() || { x: 0, y: 0, width: 2700, height: 1200 };
+          
+          dataToSave = {
+            mode: 'erd',
+            entityPositions,
+            labelPositions,
+            zoom,
+            selectedEntity
+          };
+          fileName = 'erd-positions.json';
+          title = 'ERD Positions Saved';
+        }
+        
+        // Create a downloadable JSON file
+        const positionsJson = JSON.stringify(dataToSave, null, 2);
+        const blob = new Blob([positionsJson], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        // Also log to console
+        console.log(`=== ${title.toUpperCase()} ===`);
+        console.log(positionsJson);
+        console.log('======================');
+        
+        // Show modal with the JSON
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(15, 23, 42, 0.95);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(6, 182, 212, 0.3);
+          border-radius: 12px;
+          padding: 24px;
+          z-index: 9999;
+          max-width: 600px;
+          max-height: 80vh;
+          overflow: auto;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        `;
+        
+        modal.innerHTML = `
+          <div style="color: #67e8f9; font-size: 16px; font-weight: 600; margin-bottom: 12px;">
+            ✅ ${title}
+          </div>
+          <div style="color: #94a3b8; font-size: 12px; margin-bottom: 16px;">
+            Copy the JSON below and share it with the assistant to make positions permanent:
+          </div>
+          <textarea 
+            readonly 
+            style="
+              width: 100%;
+              height: 300px;
+              background: rgba(30, 41, 59, 0.8);
+              border: 1px solid rgba(100, 116, 139, 0.3);
+              border-radius: 8px;
+              padding: 12px;
+              color: #e2e8f0;
+              font-family: 'Courier New', monospace;
+              font-size: 11px;
+              resize: none;
+            "
+          >${positionsJson}</textarea>
+          <button 
+            onclick="
+              navigator.clipboard.writeText(this.parentElement.querySelector('textarea').value);
+              this.textContent = '✓ Copied!';
+              setTimeout(() => this.textContent = 'Copy to Clipboard', 2000);
+            "
+            style="
+              margin-top: 12px;
+              width: 100%;
+              padding: 10px;
+              background: linear-gradient(135deg, #06b6d4, #3b82f6);
+              border: none;
+              border-radius: 8px;
+              color: white;
+              font-size: 13px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: opacity 0.2s;
+            "
+            onmouseover="this.style.opacity='0.9'"
+            onmouseout="this.style.opacity='1'"
+          >
+            Copy to Clipboard
+          </button>
+          <button 
+            onclick="this.parentElement.parentElement.remove()"
+            style="
+              margin-top: 8px;
+              width: 100%;
+              padding: 8px;
+              background: rgba(100, 116, 139, 0.2);
+              border: 1px solid rgba(100, 116, 139, 0.3);
+              border-radius: 8px;
+              color: #94a3b8;
+              font-size: 12px;
+              cursor: pointer;
+              transition: background 0.2s;
+            "
+            onmouseover="this.style.background='rgba(100, 116, 139, 0.3)'"
+            onmouseout="this.style.background='rgba(100, 116, 139, 0.2)'"
+          >
+            Close
+          </button>
+        `;
+        
+        document.body.appendChild(modal);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [totalSteps, handleReset]);
+  }, [totalSteps, handleReset, viewMode, selectedRole, currentStep, selectedEntity]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white overflow-hidden select-none">
@@ -210,6 +357,7 @@ function App() {
 
                 {/* DFD Canvas */}
                 <DFDCanvas
+                  ref={dfdCanvasRef}
                   nodes={nodes}
                   flows={flows}
                   selectedNode={selectedNode}
@@ -267,6 +415,7 @@ function App() {
 
                 {/* ERD Canvas */}
                 <ERDCanvas
+                  ref={erdCanvasRef}
                   entities={entities}
                   relationships={relationships}
                   selectedEntity={selectedEntity}
@@ -302,8 +451,10 @@ function App() {
             </div>
           )}
 
-          {/* Legend */}
-          <Legend isExpanded={legendExpanded} onToggle={() => setLegendExpanded(!legendExpanded)} />
+          {/* Legend - only show in DFD mode */}
+          {viewMode === 'dfd' && (
+            <Legend isExpanded={legendExpanded} onToggle={() => setLegendExpanded(!legendExpanded)} />
+          )}
         </div>
 
         {/* Footer */}

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, memo, forwardRef, useImperativeHandle } from 'react';
 import { motion } from 'framer-motion';
 import { ERDEntity, ERDRelationship, attributeTypeColors } from '../data/erdData';
 
@@ -9,17 +9,23 @@ interface ERDCanvasProps {
   onSelectEntity: (id: string) => void;
 }
 
+export interface ERDCanvasHandle {
+  getEntityPositions: () => Record<string, { x: number; y: number }>;
+  getLabelPositions: () => Record<string, { x: number; y: number; scale: number }>;
+  getZoom: () => { x: number; y: number; width: number; height: number };
+}
+
 const ENTITY_WIDTH = 320;
 const ENTITY_HEADER_HEIGHT = 60;
 const ATTRIBUTE_HEIGHT = 36;
 const BASE_VIEWBOX_WIDTH = 2700;
 
-const ERDCanvas = memo(function ERDCanvas({
+const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDCanvas({
   entities,
   relationships,
   selectedEntity,
   onSelectEntity,
-}: ERDCanvasProps) {
+}, ref) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [viewBox, setViewBox] = useState({ x: -50, y: 0, width: 2700, height: 1200 });
   const viewBoxRef = useRef(viewBox);
@@ -33,8 +39,10 @@ const ERDCanvas = memo(function ERDCanvas({
   // Drag state
   const [isDragging, setIsDragging] = useState(false);
   const [draggedEntityId, setDraggedEntityId] = useState<string | null>(null);
+  const [draggedLabelId, setDraggedLabelId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [entityPositions, setEntityPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [labelPositions, setLabelPositions] = useState<Record<string, { x: number; y: number; scale: number }>>({});
   
   // Initialize entity positions from data
   useEffect(() => {
@@ -43,7 +51,29 @@ const ERDCanvas = memo(function ERDCanvas({
       positions[entity.id] = { x: entity.x, y: entity.y };
     });
     setEntityPositions(positions);
+    
+    // Initialize label positions at midpoint of relationships
+    const labelPos: Record<string, { x: number; y: number; scale: number }> = {};
+    relationships.forEach(rel => {
+      const fromEntity = entities.find(e => e.id === rel.from);
+      const toEntity = entities.find(e => e.id === rel.to);
+      if (fromEntity && toEntity) {
+        labelPos[rel.id] = {
+          x: (fromEntity.x + toEntity.x + ENTITY_WIDTH) / 2,
+          y: (fromEntity.y + toEntity.y + ENTITY_HEADER_HEIGHT) / 2,
+          scale: 1
+        };
+      }
+    });
+    setLabelPositions(labelPos);
   }, []);
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    getEntityPositions: () => entityPositions,
+    getLabelPositions: () => labelPositions,
+    getZoom: () => viewBox
+  }), [entityPositions, labelPositions, viewBox]);
   
   // Keep ref in sync with state
   useEffect(() => {
@@ -162,6 +192,32 @@ const ERDCanvas = memo(function ERDCanvas({
     setManualControl(true);
   }, [entityPositions, viewBox]);
 
+  const handleLabelMouseDown = useCallback((e: React.MouseEvent, labelId: string) => {
+    e.stopPropagation();
+    const pos = labelPositions[labelId];
+    if (!pos || !svgRef.current) return;
+    
+    const svg = svgRef.current;
+    const rect = svg.getBoundingClientRect();
+    const svgX = viewBox.x + (e.clientX - rect.left) * (viewBox.width / rect.width);
+    const svgY = viewBox.y + (e.clientY - rect.top) * (viewBox.height / rect.height);
+    
+    setIsDragging(true);
+    setDraggedLabelId(labelId);
+    setDragOffset({ x: svgX - pos.x, y: svgY - pos.y });
+    setManualControl(true);
+  }, [labelPositions, viewBox]);
+
+  const handleLabelResize = useCallback((labelId: string, delta: number) => {
+    setLabelPositions(prev => ({
+      ...prev,
+      [labelId]: {
+        ...prev[labelId],
+        scale: Math.max(0.5, Math.min(3, prev[labelId].scale + delta))
+      }
+    }));
+  }, []);
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const now = Date.now();
     if (now - lastMouseMove.current < 16) return;
@@ -189,13 +245,28 @@ const ERDCanvas = memo(function ERDCanvas({
           y: svgY - dragOffset.y
         }
       }));
+    } else if (isDragging && draggedLabelId && svgRef.current) {
+      const svg = svgRef.current;
+      const rect = svg.getBoundingClientRect();
+      const svgX = viewBox.x + (e.clientX - rect.left) * (viewBox.width / rect.width);
+      const svgY = viewBox.y + (e.clientY - rect.top) * (viewBox.height / rect.height);
+      
+      setLabelPositions(prev => ({
+        ...prev,
+        [draggedLabelId]: {
+          ...prev[draggedLabelId],
+          x: svgX - dragOffset.x,
+          y: svgY - dragOffset.y
+        }
+      }));
     }
-  }, [isPanning, isDragging, draggedEntityId, viewBox, panStart, dragOffset]);
+  }, [isPanning, isDragging, draggedEntityId, draggedLabelId, viewBox, panStart, dragOffset]);
 
   const handleMouseUp = useCallback(() => {
     setIsPanning(false);
     setIsDragging(false);
     setDraggedEntityId(null);
+    setDraggedLabelId(null);
   }, []);
 
   // Wheel zoom
@@ -315,17 +386,19 @@ const ERDCanvas = memo(function ERDCanvas({
                 markerStart={rel.fromCardinality === '1' ? 'url(#one)' : 'url(#many)'}
                 markerEnd={rel.toCardinality === '1' ? 'url(#one)' : 'url(#many)'}
               />
-              {/* Relationship label with background */}
+              {/* Relationship label with background - draggable and resizable */}
               {!isZoomedOutFar && (() => {
-                const labelX = (getEntityCenter(rel.from).x + getEntityCenter(rel.to).x) / 2;
-                const labelY = (getEntityCenter(rel.from).y + getEntityCenter(rel.to).y) / 2 - 10;
-                const fontSize = 18 * zoomScale;
-                const labelWidth = Math.max(100, rel.label.length * 10) * zoomScale;
-                const labelHeight = 28 * zoomScale;
+                const labelPos = labelPositions[rel.id];
+                const labelX = labelPos?.x ?? (getEntityCenter(rel.from).x + getEntityCenter(rel.to).x) / 2;
+                const labelY = labelPos?.y ?? (getEntityCenter(rel.from).y + getEntityCenter(rel.to).y) / 2 - 10;
+                const labelScale = labelPos?.scale ?? 1;
+                const fontSize = 18 * zoomScale * labelScale;
+                const labelWidth = Math.max(100, rel.label.length * 10) * zoomScale * labelScale;
+                const labelHeight = 28 * zoomScale * labelScale;
                 
                 return (
                   <g>
-                    {/* Background rectangle */}
+                    {/* Background rectangle - draggable */}
                     <rect
                       x={labelX - labelWidth / 2}
                       y={labelY - labelHeight / 2}
@@ -335,6 +408,8 @@ const ERDCanvas = memo(function ERDCanvas({
                       fill="rgba(15, 23, 42, 0.95)"
                       stroke={isHighlighted ? '#06b6d4' : '#475569'}
                       strokeWidth={isHighlighted ? 2 : 1}
+                      className="cursor-move"
+                      onMouseDown={(e) => handleLabelMouseDown(e, rel.id)}
                     />
                     {/* Label text */}
                     <text
@@ -344,9 +419,40 @@ const ERDCanvas = memo(function ERDCanvas({
                       fontSize={fontSize}
                       fill={isHighlighted ? '#67e8f9' : '#e2e8f0'}
                       fontWeight={isHighlighted ? '700' : '500'}
+                      className="pointer-events-none"
                     >
                       {rel.label}
                     </text>
+                    {/* Resize handle (top-right corner) */}
+                    <g
+                      className="cursor-nesw-resize"
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        const startY = e.clientY;
+                        const startScale = labelScale;
+                        
+                        const handleMove = (moveEvent: MouseEvent) => {
+                          const delta = (startY - moveEvent.clientY) / 100;
+                          handleLabelResize(rel.id, delta * 0.1);
+                        };
+                        
+                        const handleUp = () => {
+                          window.removeEventListener('mousemove', handleMove);
+                          window.removeEventListener('mouseup', handleUp);
+                        };
+                        
+                        window.addEventListener('mousemove', handleMove);
+                        window.addEventListener('mouseup', handleUp);
+                      }}
+                    >
+                      <circle
+                        cx={labelX + labelWidth / 2 - 5}
+                        cy={labelY - labelHeight / 2 + 5}
+                        r={4 * zoomScale}
+                        fill="#06b6d4"
+                        opacity={0.6}
+                      />
+                    </g>
                   </g>
                 );
               })()}
@@ -498,6 +604,6 @@ const ERDCanvas = memo(function ERDCanvas({
       </svg>
     </div>
   );
-});
+}));
 
 export default ERDCanvas;
