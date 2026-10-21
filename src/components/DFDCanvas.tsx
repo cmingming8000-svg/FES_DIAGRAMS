@@ -19,8 +19,8 @@ interface DFDCanvasProps {
   onAuthNodeClick?: () => void;
 }
 
-const NODE_WIDTH = 180;
-const NODE_HEIGHT = 100;
+const NODE_WIDTH = 220;
+const NODE_HEIGHT = 120;
 const BASE_VIEWBOX_WIDTH = 1900;
 
 // Icon mapping
@@ -92,7 +92,7 @@ export default function DFDCanvas({
   // When zoomed IN (small viewBox): text shrinks naturally (you're closer)
   // When zoomed OUT (large viewBox): text grows to stay readable
   const rawZoomScale = viewBox.width / BASE_VIEWBOX_WIDTH;
-  const zoomScale = Math.max(0.5, Math.min(4.0, rawZoomScale));
+  const zoomScale = Math.max(0.5, Math.min(6.0, rawZoomScale));
   
   // Hide secondary text when zoomed out too far to prevent overlaps
   const isZoomedOutFar = rawZoomScale > 1.4;
@@ -114,12 +114,12 @@ export default function DFDCanvas({
       }
     }
     
-    // Calculate max scale: nodes should not exceed 90% of minimum distance
-    // Node diagonal at scale 1 is sqrt(120^2 + 60^2) = ~134
+    // Calculate max scale: nodes should not exceed 95% of minimum distance
+    // Node diagonal at scale 1 is sqrt(220^2 + 120^2) = ~250
     const nodeDiagonal = Math.sqrt(NODE_WIDTH * NODE_WIDTH + NODE_HEIGHT * NODE_HEIGHT);
-    const maxScale = (minDistance * 0.9) / nodeDiagonal;
+    const maxScale = (minDistance * 0.95) / nodeDiagonal;
     
-    return Math.min(3.0, maxScale); // Cap at 3.0 even if more space available
+    return Math.min(4.0, maxScale); // Cap at 4.0 even if more space available
   };
 
   const maxSafeScale = calculateMaxSafeScale();
@@ -801,7 +801,7 @@ export default function DFDCanvas({
               {(() => {
                 const IconComponent = iconMap[node.icon];
                 if (!IconComponent) return null;
-                const iconSizePx = 40;
+                const iconSizePx = 48;
                 return (
                   <foreignObject
                     x={cx - iconSizePx / 2}
@@ -828,10 +828,10 @@ export default function DFDCanvas({
               {!isZoomedOutFar && (
                 <text
                   x={cx}
-                  y={node.y + 60}
+                  y={node.y + 65}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  fontSize={20}
+                  fontSize={24}
                   fontWeight={isCurrent ? '700' : '600'}
                   fill={isCurrent ? 'white' : isDimmed ? '#94a3b8' : 'white'}
                   style={{
@@ -846,10 +846,10 @@ export default function DFDCanvas({
               {!isZoomedOutMedium && (
                 <text
                   x={cx}
-                  y={node.y + 82}
+                  y={node.y + 88}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  fontSize={13}
+                  fontSize={16}
                   fill={isCurrent ? '#cbd5e1' : '#64748b'}
                 >
                   {node.type === 'external' ? 'External Entity' : node.type === 'process' ? 'Process' : 'Data Store'}
