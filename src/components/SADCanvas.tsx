@@ -92,14 +92,26 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
     }
   }), [componentPositions, viewBox, savedZooms]);
 
-  // Auto-zoom to component when selected
+  // Auto-follow selected component
   useEffect(() => {
     if (!selectedComponent || manualControl) return;
 
-    const savedZoom = savedZooms[selectedComponent];
-    if (!savedZoom) return;
+    const pos = componentPositions[selectedComponent];
+    if (!pos) return;
 
-    // Animate to saved zoom
+    // Calculate target viewBox centered on the component
+    const padding = 300;
+    const targetWidth = 1200;
+    const targetHeight = 600;
+    
+    const targetViewBox = {
+      x: pos.x + COMPONENT_WIDTH / 2 - targetWidth / 2,
+      y: pos.y + COMPONENT_HEIGHT / 2 - targetHeight / 2,
+      width: targetWidth,
+      height: targetHeight
+    };
+
+    // Animate to target
     const duration = 600;
     const startTime = performance.now();
     const startViewBox = { ...viewBoxRef.current };
@@ -112,10 +124,10 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
       const eased = 1 - Math.pow(1 - progress, 3);
 
       setViewBox({
-        x: startViewBox.x + (savedZoom.x - startViewBox.x) * eased,
-        y: startViewBox.y + (savedZoom.y - startViewBox.y) * eased,
-        width: startViewBox.width + (savedZoom.width - startViewBox.width) * eased,
-        height: startViewBox.height + (savedZoom.height - startViewBox.height) * eased
+        x: startViewBox.x + (targetViewBox.x - startViewBox.x) * eased,
+        y: startViewBox.y + (targetViewBox.y - startViewBox.y) * eased,
+        width: startViewBox.width + (targetViewBox.width - startViewBox.width) * eased,
+        height: startViewBox.height + (targetViewBox.height - startViewBox.height) * eased
       });
 
       if (progress < 1) {
@@ -124,7 +136,7 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
     };
 
     requestAnimationFrame(animate);
-  }, [selectedComponent, manualControl, savedZooms]);
+  }, [selectedComponent, manualControl, componentPositions]);
 
   // Get component center
   const getComponentCenter = useCallback((componentId: string) => {
