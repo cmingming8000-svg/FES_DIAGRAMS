@@ -337,11 +337,111 @@ export default function DFDCanvas({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.code === 'Space') {
         e.preventDefault();
-        // Save positions to localStorage
-        localStorage.setItem('dfd-node-positions', JSON.stringify(nodePositions));
-        // Show a brief notification (could be enhanced with a proper toast)
-        console.log('Node positions saved!', nodePositions);
-        alert('Node positions saved! Copy the positions from the console.');
+        
+        // Create a downloadable JSON file with the positions
+        const positionsJson = JSON.stringify(nodePositions, null, 2);
+        const blob = new Blob([positionsJson], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'node-positions.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        // Also log to console for easy copying
+        console.log('=== NODE POSITIONS ===');
+        console.log(positionsJson);
+        console.log('======================');
+        
+        // Show modal with the JSON for easy copying
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(15, 23, 42, 0.95);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(6, 182, 212, 0.3);
+          border-radius: 12px;
+          padding: 24px;
+          z-index: 9999;
+          max-width: 600px;
+          max-height: 80vh;
+          overflow: auto;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        `;
+        
+        modal.innerHTML = `
+          <div style="color: #67e8f9; font-size: 16px; font-weight: 600; margin-bottom: 12px;">
+            ✅ Node Positions Saved
+          </div>
+          <div style="color: #94a3b8; font-size: 12px; margin-bottom: 16px;">
+            Copy the JSON below and share it with the assistant to make positions permanent:
+          </div>
+          <textarea 
+            readonly 
+            style="
+              width: 100%;
+              height: 300px;
+              background: rgba(30, 41, 59, 0.8);
+              border: 1px solid rgba(100, 116, 139, 0.3);
+              border-radius: 8px;
+              padding: 12px;
+              color: #e2e8f0;
+              font-family: 'Courier New', monospace;
+              font-size: 11px;
+              resize: none;
+            "
+          >${positionsJson}</textarea>
+          <button 
+            onclick="
+              navigator.clipboard.writeText(this.parentElement.querySelector('textarea').value);
+              this.textContent = '✓ Copied!';
+              setTimeout(() => this.textContent = 'Copy to Clipboard', 2000);
+            "
+            style="
+              margin-top: 12px;
+              width: 100%;
+              padding: 10px;
+              background: linear-gradient(135deg, #06b6d4, #3b82f6);
+              border: none;
+              border-radius: 8px;
+              color: white;
+              font-size: 13px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: opacity 0.2s;
+            "
+            onmouseover="this.style.opacity='0.9'"
+            onmouseout="this.style.opacity='1'"
+          >
+            Copy to Clipboard
+          </button>
+          <button 
+            onclick="this.parentElement.parentElement.remove()"
+            style="
+              margin-top: 8px;
+              width: 100%;
+              padding: 8px;
+              background: rgba(100, 116, 139, 0.2);
+              border: 1px solid rgba(100, 116, 139, 0.3);
+              border-radius: 8px;
+              color: #94a3b8;
+              font-size: 12px;
+              cursor: pointer;
+              transition: background 0.2s;
+            "
+            onmouseover="this.style.background='rgba(100, 116, 139, 0.3)'"
+            onmouseout="this.style.background='rgba(100, 116, 139, 0.2)'"
+          >
+            Close
+          </button>
+        `;
+        
+        document.body.appendChild(modal);
       }
     };
     

@@ -134,7 +134,7 @@ function App() {
                 <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Shift</kbd>
                 <span>+</span>
                 <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Space</kbd>
-                <span className="ml-1">Save Positions</span>
+                <span className="ml-1">Save & Share Positions</span>
               </div>
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
