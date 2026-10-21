@@ -350,8 +350,7 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
           const isActiveInFlow = activeFlow && activeFlowConnections.has(conn.id);
           const isCurrentStep = activeFlow && currentStep > 0 && activeFlow[currentStep - 1]?.connectionId === conn.id;
           const isHighlighted = selectedComponent && (conn.from === selectedComponent || conn.to === selectedComponent);
-          const isInActiveFlow = activeFlow ? (activeFlowComponents.has(conn.from) && activeFlowComponents.has(conn.to)) : false;
-          const isDimmed = (selectedComponent && !isHighlighted) || (activeFlow && !isInActiveFlow && !isActiveInFlow);
+          const isDimmed = (selectedComponent && !isHighlighted) || (activeFlow && !isActiveInFlow);
 
           return (
             <g key={conn.id} style={{ opacity: isDimmed ? 0.15 : 1, transition: 'opacity 0.3s' }}>
@@ -383,7 +382,7 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
                       height={labelHeight}
                       rx={4}
                       fill="rgba(15, 23, 42, 0.95)"
-                      stroke={labelHighlighted ? '#06b6d4' : '#475569'}
+                      stroke={labelHighlighted ? '#06b6d4' : isDimmed ? '#1e293b' : '#475569'}
                       strokeWidth={labelHighlighted ? 2 : 1}
                     />
                     <text
@@ -391,7 +390,7 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
                       y={labelY + 5}
                       textAnchor="middle"
                       fontSize={fontSize}
-                      fill={labelHighlighted ? '#67e8f9' : '#e2e8f0'}
+                      fill={labelHighlighted ? '#67e8f9' : isDimmed ? '#475569' : '#e2e8f0'}
                       fontWeight={labelHighlighted ? '700' : '500'}
                     >
                       {conn.label}
@@ -431,9 +430,9 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
                 width={COMPONENT_WIDTH}
                 height={COMPONENT_HEIGHT}
                 rx={8}
-                fill={isCurrentStep ? `${component.color}40` : isSelected ? `${component.color}30` : isActiveInFlow ? `${component.color}20` : `${component.color}10`}
-                stroke={isCurrentStep ? '#22d3ee' : isSelected ? component.color : isActiveInFlow ? `${component.color}aa` : `${component.color}66`}
-                strokeWidth={isCurrentStep ? 3.5 : isSelected ? 3 : isActiveInFlow ? 2 : 1.5}
+                fill={isCurrentStep ? `${component.color}40` : isSelected ? `${component.color}30` : isActiveInFlow ? `${component.color}20` : isDimmed ? `${component.color}05` : `${component.color}10`}
+                stroke={isCurrentStep ? '#22d3ee' : isSelected ? component.color : isActiveInFlow ? `${component.color}aa` : isDimmed ? `${component.color}33` : `${component.color}66`}
+                strokeWidth={isCurrentStep ? 3.5 : isSelected ? 3 : isActiveInFlow ? 2 : isDimmed ? 1 : 1.5}
                 filter={isCurrentStep ? 'url(#glow)' : undefined}
               />
 
