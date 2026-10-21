@@ -377,31 +377,6 @@ function App() {
             {/* DFD Mode */}
             {viewMode === 'dfd' && (
               <>
-                {/* Step indicator overlay */}
-                {selectedRole && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="px-4 py-2 rounded-full text-sm font-medium border backdrop-blur-md"
-                        style={{
-                          backgroundColor: `${roleDescriptions[selectedRole].color}15`,
-                          borderColor: `${roleDescriptions[selectedRole].color}40`,
-                          color: roleDescriptions[selectedRole].color
-                        }}
-                      >
-                        {roleDescriptions[selectedRole].title} Flow — Step {currentStep} of {totalSteps}
-                      </div>
-                      <div className="px-2 py-1 rounded-md bg-slate-800/60 backdrop-blur border border-white/5 text-[10px] text-slate-400">
-                        ← → to navigate
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
                 {/* Instructions overlay when no role selected */}
                 {!selectedRole && (
                   <motion.div
@@ -446,19 +421,6 @@ function App() {
             {/* ERD Mode */}
             {viewMode === 'erd' && (
               <>
-                {/* Entity selected indicator */}
-                {selectedEntity && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
-                  >
-                    <div className="px-4 py-2 rounded-full text-sm font-medium border backdrop-blur-md bg-cyan-900/30 border-cyan-500/40 text-cyan-300">
-                      Viewing: <span className="font-bold">{selectedEntityData?.label}</span>
-                    </div>
-                  </motion.div>
-                )}
-
                 {/* Instructions overlay */}
                 {!selectedEntity && (
                   <motion.div
