@@ -616,24 +616,26 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(function DFDC
                 filter={isCurrent ? 'url(#glow)' : undefined}
                 className="transition-all duration-500"
               />
-              {/* Return path (bidirectional flow - data coming back) */}
-              <path
-                d={getReturnPath(flow)}
-                fill="none"
-                stroke={
-                  isCurrent ? '#10b981' :
-                  active ? '#10b981aa' :
-                  isHovered ? '#10b98166' :
-                  'rgba(16,185,129,0.15)'
-                }
-                strokeWidth={isCurrent ? 3 : isHovered ? 2 : active ? 1.8 : 0.8}
-                strokeDasharray="6 4"
-                markerEnd={isCurrent ? 'url(#arrowhead-return)' : active ? 'url(#arrowhead-return)' : 'url(#arrowhead-return-dim)'}
-                className="transition-all duration-500"
-                opacity={isCurrent ? 0.95 : active ? 0.7 : isHovered ? 0.5 : 0.3}
-              />
-              {/* Return flow label */}
-              {isCurrent && !isZoomedOutFar && (() => {
+              {/* Return path (bidirectional flow - data coming back) - only show if hasReturnFlow is true */}
+              {flow.hasReturnFlow && (
+                <path
+                  d={getReturnPath(flow)}
+                  fill="none"
+                  stroke={
+                    isCurrent ? '#10b981' :
+                    active ? '#10b981aa' :
+                    isHovered ? '#10b98166' :
+                    'rgba(16,185,129,0.15)'
+                  }
+                  strokeWidth={isCurrent ? 3 : isHovered ? 2 : active ? 1.8 : 0.8}
+                  strokeDasharray="6 4"
+                  markerEnd={isCurrent ? 'url(#arrowhead-return)' : active ? 'url(#arrowhead-return)' : 'url(#arrowhead-return-dim)'}
+                  className="transition-all duration-500"
+                  opacity={isCurrent ? 0.95 : active ? 0.7 : isHovered ? 0.5 : 0.3}
+                />
+              )}
+              {/* Return flow label - only show if hasReturnFlow is true */}
+              {flow.hasReturnFlow && isCurrent && !isZoomedOutFar && (() => {
                 const from = getNodeCenter(flow.from);
                 const to = getNodeCenter(flow.to);
                 const dx = to.x - from.x;
@@ -786,10 +788,12 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(function DFDC
                   <circle r="5" fill="#22d3ee" opacity="0.9">
                     <animateMotion dur="2s" repeatCount="indefinite" path={getFlowPath(flow)} />
                   </circle>
-                  {/* Return flow particle */}
-                  <circle r="4" fill="#10b981" opacity="0.8">
-                    <animateMotion dur="2.5s" repeatCount="indefinite" path={getReturnPath(flow)} />
-                  </circle>
+                  {/* Return flow particle - only show if hasReturnFlow is true */}
+                  {flow.hasReturnFlow && (
+                    <circle r="4" fill="#10b981" opacity="0.8">
+                      <animateMotion dur="2.5s" repeatCount="indefinite" path={getReturnPath(flow)} />
+                    </circle>
+                  )}
                 </>
               )}
               {/* Flow label on hover or when current - scaled with view (hide when zoomed out far) */}

@@ -21,6 +21,7 @@ export interface DFDFlow {
   description: string;
   roles: UserRole[];
   stepOrder: Record<UserRole, number | null>;
+  hasReturnFlow?: boolean; // Only show return path if data actually flows back
 }
 
 export const nodes: DFDNode[] = [
@@ -360,7 +361,8 @@ export const flows: DFDFlow[] = [
     label: 'Session token',
     description: 'Server creates session and stores SHA-256 hash of opaque token',
     roles: ['student', 'hr_qa', 'faculty', 'dean'],
-    stepOrder: { student: 2, hr_qa: 2, faculty: 3, dean: 3 }
+    stepOrder: { student: 2, hr_qa: 2, faculty: 3, dean: 3 },
+    hasReturnFlow: true
   },
   {
     id: 'f3',
@@ -425,7 +427,8 @@ export const flows: DFDFlow[] = [
     label: 'Query evaluations',
     description: 'HR/QA queries all evaluations (sees student IDs for verification)',
     roles: ['hr_qa'],
-    stepOrder: { student: null, hr_qa: 4, faculty: null, dean: null }
+    stepOrder: { student: null, hr_qa: 4, faculty: null, dean: null },
+    hasReturnFlow: true
   },
   {
     id: 'f10',
@@ -461,7 +464,8 @@ export const flows: DFDFlow[] = [
     label: 'Read audit log',
     description: 'Service reads append-only audit entries for verification',
     roles: ['hr_qa'],
-    stepOrder: { student: null, hr_qa: null, faculty: null, dean: null }
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: null },
+    hasReturnFlow: true
   },
 
   // Faculty flows
@@ -499,7 +503,8 @@ export const flows: DFDFlow[] = [
     label: 'Request insights',
     description: 'Faculty views TNA-based professional development recommendations',
     roles: ['faculty'],
-    stepOrder: { student: null, hr_qa: null, faculty: 5, dean: null }
+    stepOrder: { student: null, hr_qa: null, faculty: 5, dean: null },
+    hasReturnFlow: true
   },
 
   // Dean flows
@@ -537,7 +542,8 @@ export const flows: DFDFlow[] = [
     label: 'Department analysis',
     description: 'Dean views department-level TNA snapshots and comparisons',
     roles: ['dean'],
-    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 5 }
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 5 },
+    hasReturnFlow: true
   },
   {
     id: 'f22',
@@ -557,7 +563,8 @@ export const flows: DFDFlow[] = [
     label: 'Analytics data',
     description: 'TNA snapshots feed into report generation',
     roles: ['hr_qa', 'dean', 'faculty'],
-    stepOrder: { student: null, hr_qa: 8, faculty: 6, dean: 7 }
+    stepOrder: { student: null, hr_qa: 8, faculty: 6, dean: 7 },
+    hasReturnFlow: true
   },
   {
     id: 'f24',
@@ -566,7 +573,8 @@ export const flows: DFDFlow[] = [
     label: 'PDF/Excel reports',
     description: 'Faculty receives printable evaluation reports',
     roles: ['faculty'],
-    stepOrder: { student: null, hr_qa: null, faculty: 7, dean: null }
+    stepOrder: { student: null, hr_qa: null, faculty: 7, dean: null },
+    hasReturnFlow: true
   },
   {
     id: 'f25',
@@ -575,7 +583,8 @@ export const flows: DFDFlow[] = [
     label: 'Department reports',
     description: 'Dean receives department analytics reports',
     roles: ['dean'],
-    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 8 }
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 8 },
+    hasReturnFlow: true
   },
   {
     id: 'f26',
@@ -584,7 +593,8 @@ export const flows: DFDFlow[] = [
     label: 'System reports',
     description: 'HR/QA receives institution-wide reports and verification receipts',
     roles: ['hr_qa'],
-    stepOrder: { student: null, hr_qa: 9, faculty: null, dean: null }
+    stepOrder: { student: null, hr_qa: 9, faculty: null, dean: null },
+    hasReturnFlow: true
   }
 ];
 
