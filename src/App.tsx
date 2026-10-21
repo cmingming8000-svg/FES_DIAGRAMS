@@ -4,11 +4,12 @@ import DFDCanvas from './components/DFDCanvas';
 import ERDCanvas, { ERDCanvasHandle } from './components/ERDCanvas';
 import SADCanvas, { SADCanvasHandle } from './components/SADCanvas';
 import RolePopup from './components/RolePopup';
+import ClientPopup from './components/ClientPopup';
 import Legend from './components/Legend';
 import ModeSwitcher, { ViewMode } from './components/ModeSwitcher';
 import { nodes, flows, UserRole, roleDescriptions } from './data/dfdData';
 import { entities, relationships } from './data/erdData';
-import { components as sadComponents } from './data/sadData';
+import { components as sadComponents, SADClientType, sadFlowSequences, sadClientTypes, SADFlowStep } from './data/sadData';
 
 function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('dfd');
@@ -23,6 +24,9 @@ function App() {
   
   // SAD state
   const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
+  const [selectedSADClient, setSelectedSADClient] = useState<SADClientType | null>(null);
+  const [sadCurrentStep, setSadCurrentStep] = useState(1);
+  const [showClientPopup, setShowClientPopup] = useState(false);
   
   // Ref to access ERD canvas state
   const erdCanvasRef = useRef<ERDCanvasHandle>(null);
@@ -111,8 +115,50 @@ function App() {
   }, []);
 
   const handleSelectComponent = useCallback((id: string) => {
+    // If clicking the client entry point, show the client popup
+    if (id === 'client-entry') {
+      setShowClientPopup(true);
+      return;
+    }
     setSelectedComponent((prev) => (prev === id ? null : id));
   }, []);
+
+  const handleSelectSADClient = useCallback((client: SADClientType) => {
+    setSelectedSADClient(client);
+    setSadCurrentStep(1);
+    setShowClientPopup(false);
+    // Set the first component in the flow as selected
+    const firstStep = sadFlowSequences[client][0];
+    if (firstStep) {
+      setSelectedComponent(firstStep.componentId);
+    }
+  }, []);
+
+  const handleSADNextStep = useCallback(() => {
+    if (!selectedSADClient) return;
+    const flow = sadFlowSequences[selectedSADClient];
+    setSadCurrentStep((prev) => {
+      const nextStep = Math.min(prev + 1, flow.length);
+      const step = flow[nextStep - 1];
+      if (step) {
+        setSelectedComponent(step.componentId);
+      }
+      return nextStep;
+    });
+  }, [selectedSADClient]);
+
+  const handleSADPrevStep = useCallback(() => {
+    if (!selectedSADClient) return;
+    const flow = sadFlowSequences[selectedSADClient];
+    setSadCurrentStep((prev) => {
+      const prevStep = Math.max(prev - 1, 1);
+      const step = flow[prevStep - 1];
+      if (step) {
+        setSelectedComponent(step.componentId);
+      }
+      return prevStep;
+    });
+  }, [selectedSADClient]);
 
   const handleReset = useCallback(() => {
     setSelectedRole(null);
@@ -120,6 +166,8 @@ function App() {
     setSelectedNode(null);
     setSelectedEntity(null);
     setSelectedComponent(null);
+    setSelectedSADClient(null);
+    setSadCurrentStep(1);
     setTourIndex(-1);
   }, []);
 
@@ -130,16 +178,22 @@ function App() {
     if (mode === 'dfd') {
       setSelectedEntity(null);
       setSelectedComponent(null);
+      setSelectedSADClient(null);
+      setSadCurrentStep(1);
     } else if (mode === 'erd') {
       setSelectedRole(null);
       setSelectedNode(null);
       setCurrentStep(1);
       setSelectedComponent(null);
+      setSelectedSADClient(null);
+      setSadCurrentStep(1);
     } else if (mode === 'sad') {
       setSelectedRole(null);
       setSelectedNode(null);
       setCurrentStep(1);
       setSelectedEntity(null);
+      setSelectedSADClient(null);
+      setSadCurrentStep(1);
     }
   }, []);
 
@@ -159,13 +213,17 @@ function App() {
           setSelectedEntity(erdTourSequence[nextIndex]);
           return nextIndex;
         });
-      } else if (viewMode === 'sad' && sadTourSequence.length > 0) {
-        // SAD mode: navigate through tour sequence
-        setTourIndex((prev) => {
-          const nextIndex = prev < sadTourSequence.length - 1 ? prev + 1 : 0;
-          setSelectedComponent(sadTourSequence[nextIndex]);
-          return nextIndex;
-        });
+      } else if (viewMode === 'sad') {
+        // SAD mode: navigate through flow sequence if client selected, otherwise tour
+        if (selectedSADClient) {
+          handleSADNextStep();
+        } else if (sadTourSequence.length > 0) {
+          setTourIndex((prev) => {
+            const nextIndex = prev < sadTourSequence.length - 1 ? prev + 1 : 0;
+            setSelectedComponent(sadTourSequence[nextIndex]);
+            return nextIndex;
+          });
+        }
       }
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
       e.preventDefault();
@@ -179,13 +237,17 @@ function App() {
           setSelectedEntity(erdTourSequence[nextIndex]);
           return nextIndex;
         });
-      } else if (viewMode === 'sad' && sadTourSequence.length > 0) {
-        // SAD mode: navigate through tour sequence (backwards)
-        setTourIndex((prev) => {
-          const nextIndex = prev > 0 ? prev - 1 : sadTourSequence.length - 1;
-          setSelectedComponent(sadTourSequence[nextIndex]);
-          return nextIndex;
-        });
+      } else if (viewMode === 'sad') {
+        // SAD mode: navigate through flow sequence if client selected, otherwise tour
+        if (selectedSADClient) {
+          handleSADPrevStep();
+        } else if (sadTourSequence.length > 0) {
+          setTourIndex((prev) => {
+            const nextIndex = prev > 0 ? prev - 1 : sadTourSequence.length - 1;
+            setSelectedComponent(sadTourSequence[nextIndex]);
+            return nextIndex;
+          });
+        }
       }      } else if (e.key === 'Escape') {
         handleReset();
       } else if (viewMode === 'erd' && e.ctrlKey && e.altKey && e.code === 'Space') {
@@ -731,15 +793,40 @@ function App() {
             {/* SAD Mode */}
             {viewMode === 'sad' && (
               <>
+                {/* Step indicator overlay */}
+                {selectedSADClient && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="px-4 py-2 rounded-full text-sm font-medium border backdrop-blur-md"
+                        style={{
+                          backgroundColor: `${sadClientTypes.find(c => c.id === selectedSADClient)?.color}15`,
+                          borderColor: `${sadClientTypes.find(c => c.id === selectedSADClient)?.color}40`,
+                          color: sadClientTypes.find(c => c.id === selectedSADClient)?.color
+                        }}
+                      >
+                        {sadClientTypes.find(c => c.id === selectedSADClient)?.label} Flow — Step {sadCurrentStep} of {sadFlowSequences[selectedSADClient].length}
+                      </div>
+                      <div className="px-2 py-1 rounded-md bg-slate-800/60 backdrop-blur border border-white/5 text-[10px] text-slate-400">
+                        ← → to navigate
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Instructions overlay */}
-                {!selectedComponent && (
+                {!selectedSADClient && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20"
                   >
                     <div className="px-4 py-2 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-sm text-slate-300">
-                      Click any component to view connections
+                      Click the <span className="text-cyan-400 font-semibold">Client</span> node to start
                     </div>
                   </motion.div>
                 )}
@@ -749,7 +836,17 @@ function App() {
                   ref={sadCanvasRef}
                   selectedComponent={selectedComponent}
                   onSelectComponent={handleSelectComponent}
+                  activeFlow={selectedSADClient ? sadFlowSequences[selectedSADClient] : null}
+                  currentStep={sadCurrentStep}
                 />
+
+                {/* Client Selection Popup */}
+                {showClientPopup && (
+                  <ClientPopup
+                    onSelectClient={handleSelectSADClient}
+                    onClose={() => setShowClientPopup(false)}
+                  />
+                )}
               </>
             )}
 

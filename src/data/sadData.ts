@@ -18,7 +18,70 @@ export interface SADConnection {
   description: string;
 }
 
+export type SADClientType = 'student' | 'faculty' | 'admin';
+
+export interface SADFlowStep {
+  componentId: string;
+  connectionId?: string;
+  description: string;
+}
+
+export const sadClientTypes: { id: SADClientType; label: string; description: string; color: string }[] = [
+  { id: 'student', label: 'Student', description: 'Submit evaluations', color: '#3b82f6' },
+  { id: 'faculty', label: 'Faculty', description: 'View evaluation results', color: '#8b5cf6' },
+  { id: 'admin', label: 'HR/QA or Dean', description: 'Manage system & release', color: '#ef4444' }
+];
+
+export const sadFlowSequences: Record<SADClientType, SADFlowStep[]> = {
+  student: [
+    { componentId: 'client-entry', description: 'Entry point' },
+    { componentId: 'student-client', connectionId: 'c1', description: 'Student accesses web interface' },
+    { componentId: 'load-balancer', connectionId: 'c4', description: 'Request routed through load balancer' },
+    { componentId: 'web-server', description: 'Static assets served' },
+    { componentId: 'api-server', connectionId: 'c6', description: 'API handles evaluation request' },
+    { componentId: 'auth-service', connectionId: 'c10', description: 'Authentication & session created' },
+    { componentId: 'session-store', description: 'Session stored' },
+    { componentId: 'evaluation-service', connectionId: 'c8', description: 'Evaluation processed' },
+    { componentId: 'pii-redaction-service', connectionId: 'c14', description: 'PII redacted for privacy' },
+    { componentId: 'postgresql', description: 'Evaluation data saved' }
+  ],
+  faculty: [
+    { componentId: 'client-entry', description: 'Entry point' },
+    { componentId: 'faculty-client', connectionId: 'c2', description: 'Faculty accesses web interface' },
+    { componentId: 'load-balancer', connectionId: 'c5', description: 'Request routed through load balancer' },
+    { componentId: 'api-server', connectionId: 'c6', description: 'API handles request' },
+    { componentId: 'auth-service', connectionId: 'c10', description: 'Authentication verified' },
+    { componentId: 'session-store', description: 'Session validated' },
+    { componentId: 'evaluation-service', connectionId: 'c9', description: 'Evaluation results retrieved' },
+    { componentId: 'postgresql', connectionId: 'c11', description: 'Data queried from database' },
+    { componentId: 'tna-engine', connectionId: 'c12', description: 'TNA insights computed' },
+    { componentId: 'postgresql', description: 'Results returned to faculty' }
+  ],
+  admin: [
+    { componentId: 'client-entry', description: 'Entry point' },
+    { componentId: 'admin-client', connectionId: 'c3', description: 'Admin accesses web interface' },
+    { componentId: 'load-balancer', connectionId: 'c5', description: 'Request routed through load balancer' },
+    { componentId: 'api-server', connectionId: 'c6', description: 'API handles admin request' },
+    { componentId: 'auth-service', connectionId: 'c10', description: 'Admin authentication' },
+    { componentId: 'session-store', description: 'Admin session created' },
+    { componentId: 'evaluation-service', connectionId: 'c9', description: 'System management operations' },
+    { componentId: 'postgresql', connectionId: 'c13', description: 'Admin data operations' },
+    { componentId: 'audit-log', description: 'All actions logged for compliance' },
+    { componentId: 'tna-engine', description: 'System analytics & reporting' }
+  ]
+};
+
 export const components: SADComponent[] = [
+  {
+    id: 'client-entry',
+    label: 'Client',
+    description: 'Entry point - click to select client type',
+    type: 'external',
+    x: -1000,
+    y: 0,
+    color: '#06b6d4',
+    tourOrder: 0
+  },
   {
     id: 'student-client',
     label: 'Student Client',

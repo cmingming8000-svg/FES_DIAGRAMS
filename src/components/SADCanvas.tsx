@@ -1,5 +1,5 @@
 import { memo, forwardRef, useImperativeHandle, useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { SADComponent, SADConnection, components, connections } from '../data/sadData';
+import { SADComponent, SADConnection, components, connections, SADFlowStep } from '../data/sadData';
 
 export interface SADCanvasHandle {
   getComponentPositions: () => Record<string, { x: number; y: number }>;
@@ -11,6 +11,8 @@ export interface SADCanvasHandle {
 interface SADCanvasProps {
   selectedComponent: string | null;
   onSelectComponent: (id: string) => void;
+  activeFlow?: SADFlowStep[] | null;
+  currentStep?: number;
 }
 
 const COMPONENT_WIDTH = 180;
@@ -18,7 +20,9 @@ const COMPONENT_HEIGHT = 100;
 
 const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
   selectedComponent,
-  onSelectComponent
+  onSelectComponent,
+  activeFlow,
+  currentStep = 1
 }, ref) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [viewBox, setViewBox] = useState({
@@ -257,6 +261,30 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
     return getRelatedComponents(selectedComponent);
   }, [selectedComponent, getRelatedComponents]);
 
+  // Get active components and connections in the flow
+  const activeFlowComponents = useMemo(() => {
+    if (!activeFlow) return new Set<string>();
+    const active = new Set<string>();
+    for (let i = 0; i < currentStep; i++) {
+      if (activeFlow[i]) {
+        active.add(activeFlow[i].componentId);
+      }
+    }
+    return active;
+  }, [activeFlow, currentStep]);
+
+  const activeFlowConnections = useMemo(() => {
+    if (!activeFlow) return new Set<string>();
+    const active = new Set<string>();
+    for (let i = 0; i < currentStep; i++) {
+      const step = activeFlow[i];
+      if (step?.connectionId) {
+        active.add(step.connectionId);
+      }
+    }
+    return active;
+  }, [activeFlow, currentStep]);
+
   // Get component type icon
   const getComponentIcon = (type: string) => {
     switch (type) {
@@ -293,6 +321,13 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
             <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
           </marker>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
         {/* Background */}
@@ -300,17 +335,21 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
 
         {/* Connections */}
         {connections.map((conn) => {
+          const isActiveInFlow = activeFlow && activeFlowConnections.has(conn.id);
+          const isCurrentStep = activeFlow && currentStep > 0 && activeFlow[currentStep - 1]?.connectionId === conn.id;
           const isHighlighted = selectedComponent && (conn.from === selectedComponent || conn.to === selectedComponent);
-          const isDimmed = selectedComponent && !isHighlighted;
+          const isInActiveFlow = activeFlow ? (activeFlowComponents.has(conn.from) && activeFlowComponents.has(conn.to)) : false;
+          const isDimmed = (selectedComponent && !isHighlighted) || (activeFlow && !isInActiveFlow && !isActiveInFlow);
 
           return (
             <g key={conn.id} style={{ opacity: isDimmed ? 0.15 : 1, transition: 'opacity 0.3s' }}>
               <path
                 d={getConnectionPath(conn)}
                 fill="none"
-                stroke={isHighlighted ? '#06b6d4' : '#475569'}
-                strokeWidth={isHighlighted ? 2.5 : 1.5}
+                stroke={isCurrentStep ? '#22d3ee' : isActiveInFlow ? '#06b6d4' : isHighlighted ? '#06b6d4' : '#475569'}
+                strokeWidth={isCurrentStep ? 3 : isActiveInFlow ? 2.5 : isHighlighted ? 2.5 : 1.5}
                 markerEnd="url(#arrowhead)"
+                filter={isCurrentStep ? 'url(#glow)' : undefined}
               />
               {/* Connection label */}
               {(() => {
@@ -321,6 +360,7 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
                 const fontSize = 14;
                 const labelWidth = Math.max(80, conn.label.length * 8);
                 const labelHeight = 24;
+                const labelHighlighted = isCurrentStep || isActiveInFlow || isHighlighted;
 
                 return (
                   <g>
@@ -331,16 +371,16 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
                       height={labelHeight}
                       rx={4}
                       fill="rgba(15, 23, 42, 0.95)"
-                      stroke={isHighlighted ? '#06b6d4' : '#475569'}
-                      strokeWidth={isHighlighted ? 2 : 1}
+                      stroke={labelHighlighted ? '#06b6d4' : '#475569'}
+                      strokeWidth={labelHighlighted ? 2 : 1}
                     />
                     <text
                       x={labelX}
                       y={labelY + 5}
                       textAnchor="middle"
                       fontSize={fontSize}
-                      fill={isHighlighted ? '#67e8f9' : '#e2e8f0'}
-                      fontWeight={isHighlighted ? '700' : '500'}
+                      fill={labelHighlighted ? '#67e8f9' : '#e2e8f0'}
+                      fontWeight={labelHighlighted ? '700' : '500'}
                     >
                       {conn.label}
                     </text>
@@ -356,7 +396,9 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
           const pos = componentPositions[component.id] || { x: component.x, y: component.y };
           const isSelected = selectedComponent === component.id;
           const isRelated = relatedComponents.has(component.id);
-          const isDimmed = selectedComponent && !isSelected && !isRelated;
+          const isActiveInFlow = activeFlow && activeFlowComponents.has(component.id);
+          const isCurrentStep = activeFlow && currentStep > 0 && activeFlow[currentStep - 1]?.componentId === component.id;
+          const isDimmed = (selectedComponent && !isSelected && !isRelated) || (activeFlow && !isActiveInFlow);
           const isDraggingThis = draggedComponentId === component.id;
 
           return (
@@ -377,9 +419,10 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
                 width={COMPONENT_WIDTH}
                 height={COMPONENT_HEIGHT}
                 rx={8}
-                fill={isSelected ? `${component.color}30` : `${component.color}10`}
-                stroke={isSelected ? component.color : `${component.color}66`}
-                strokeWidth={isSelected ? 3 : 1.5}
+                fill={isCurrentStep ? `${component.color}40` : isSelected ? `${component.color}30` : isActiveInFlow ? `${component.color}20` : `${component.color}10`}
+                stroke={isCurrentStep ? '#22d3ee' : isSelected ? component.color : isActiveInFlow ? `${component.color}aa` : `${component.color}66`}
+                strokeWidth={isCurrentStep ? 3.5 : isSelected ? 3 : isActiveInFlow ? 2 : 1.5}
+                filter={isCurrentStep ? 'url(#glow)' : undefined}
               />
 
               {/* Component icon */}
