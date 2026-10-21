@@ -66,7 +66,10 @@ export default function DFDCanvas({
   // When zoomed IN (small viewBox): text shrinks naturally (you're closer)
   // When zoomed OUT (large viewBox): text grows to stay readable
   const rawZoomScale = viewBox.width / BASE_VIEWBOX_WIDTH;
-  const zoomScale = Math.max(0.7, Math.min(3.0, rawZoomScale));
+  const zoomScale = Math.max(0.7, Math.min(2.0, rawZoomScale));
+  
+  // Hide secondary text when zoomed out too far to prevent overlaps
+  const isZoomedOutFar = rawZoomScale > 1.8;
 
   const getNodeCenter = (nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
@@ -110,21 +113,29 @@ export default function DFDCanvas({
 
   // Zoom controls
   const zoomIn = useCallback(() => {
-    setViewBox((vb) => ({
-      x: vb.x + vb.width * 0.1,
-      y: vb.y + vb.height * 0.1,
-      width: vb.width * 0.8,
-      height: vb.height * 0.8,
-    }));
+    setViewBox((vb) => {
+      const newWidth = Math.max(400, vb.width * 0.8);
+      const newHeight = Math.max(250, vb.height * 0.8);
+      return {
+        x: vb.x + (vb.width - newWidth) * 0.5,
+        y: vb.y + (vb.height - newHeight) * 0.5,
+        width: newWidth,
+        height: newHeight,
+      };
+    });
   }, []);
 
   const zoomOut = useCallback(() => {
-    setViewBox((vb) => ({
-      x: vb.x - vb.width * 0.125,
-      y: vb.y - vb.height * 0.125,
-      width: vb.width * 1.25,
-      height: vb.height * 1.25,
-    }));
+    setViewBox((vb) => {
+      const newWidth = Math.min(3500, vb.width * 1.25);
+      const newHeight = Math.min(2200, vb.height * 1.25);
+      return {
+        x: vb.x - (newWidth - vb.width) * 0.5,
+        y: vb.y - (newHeight - vb.height) * 0.5,
+        width: newWidth,
+        height: newHeight,
+      };
+    });
   }, []);
 
   const resetView = useCallback(() => {
@@ -163,8 +174,8 @@ export default function DFDCanvas({
       e.preventDefault();
       const factor = e.deltaY > 0 ? 1.1 : 0.9;
       setViewBox((vb) => {
-        const newWidth = vb.width * factor;
-        const newHeight = vb.height * factor;
+        const newWidth = Math.max(400, Math.min(3500, vb.width * factor));
+        const newHeight = Math.max(250, Math.min(2200, vb.height * factor));
         const mouseXRatio = e.offsetX / svg.clientWidth;
         const mouseYRatio = e.offsetY / svg.clientHeight;
         return {
@@ -558,20 +569,22 @@ export default function DFDCanvas({
               </text>
 
               {/* Type badge - counter-scaled for zoom, sized by tier */}
-              <text
-                x={cx}
-                y={node.y + 52}
-                textAnchor="middle"
-                className="pointer-events-none select-none"
-                fontSize={typeSize * zoomScale}
-                fill={isCurrent ? '#cbd5e1' : '#64748b'}
-                transform={`translate(${cx}, ${node.y + 52}) scale(${zoomScale}) translate(${-cx}, ${-node.y - 52})`}
-              >
-                {node.type === 'external' ? 'External Entity' : node.type === 'process' ? 'Process' : 'Data Store'}
-              </text>
+              {!isZoomedOutFar && (
+                <text
+                  x={cx}
+                  y={node.y + 52}
+                  textAnchor="middle"
+                  className="pointer-events-none select-none"
+                  fontSize={typeSize * zoomScale}
+                  fill={isCurrent ? '#cbd5e1' : '#64748b'}
+                  transform={`translate(${cx}, ${node.y + 52}) scale(${zoomScale}) translate(${-cx}, ${-node.y - 52})`}
+                >
+                  {node.type === 'external' ? 'External Entity' : node.type === 'process' ? 'Process' : 'Data Store'}
+                </text>
+              )}
 
               {/* "Click to login" hint for auth entry point */}
-              {isAuthEntry && (
+              {isAuthEntry && !isZoomedOutFar && (
                 <text
                   x={cx}
                   y={node.y + NODE_HEIGHT + 18}
