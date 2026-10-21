@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 
-export type ViewMode = 'dfd' | 'erd';
+export type ViewMode = 'dfd' | 'erd' | 'sad';
 
 interface ModeSwitcherProps {
   mode: ViewMode;
@@ -12,6 +12,7 @@ interface ModeSwitcherProps {
 const modes: { id: ViewMode; label: string; description: string }[] = [
   { id: 'dfd', label: 'Data Flow Diagram', description: 'Visualize data movement' },
   { id: 'erd', label: 'Entity Relationship', description: 'Database schema view' },
+  { id: 'sad', label: 'System Architecture', description: 'Infrastructure overview' },
 ];
 
 export default function ModeSwitcher({ mode, onModeChange }: ModeSwitcherProps) {

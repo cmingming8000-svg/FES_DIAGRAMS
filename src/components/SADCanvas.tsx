@@ -1,0 +1,428 @@
+import { memo, forwardRef, useImperativeHandle, useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { SADComponent, SADConnection, components, connections } from '../data/sadData';
+
+export interface SADCanvasHandle {
+  getComponentPositions: () => Record<string, { x: number; y: number }>;
+  getZoom: () => { x: number; y: number; width: number; height: number };
+  getSavedZooms: () => Record<string, { x: number; y: number; width: number; height: number }>;
+  saveZoomForComponent: (componentId: string) => void;
+}
+
+interface SADCanvasProps {
+  selectedComponent: string | null;
+  onSelectComponent: (id: string) => void;
+}
+
+const COMPONENT_WIDTH = 180;
+const COMPONENT_HEIGHT = 100;
+
+const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
+  selectedComponent,
+  onSelectComponent
+}, ref) => {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [viewBox, setViewBox] = useState({
+    x: -1000,
+    y: -400,
+    width: 2200,
+    height: 1000
+  });
+  const viewBoxRef = useRef(viewBox);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [manualControl, setManualControl] = useState(false);
+  const manualControlTimer = useRef<number | null>(null);
+  const lastMouseMove = useRef<number>(0);
+
+  // Drag state
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedComponentId, setDraggedComponentId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [componentPositions, setComponentPositions] = useState<Record<string, { x: number; y: number }>>({});
+
+  // Saved zoom levels per component
+  const [savedZooms, setSavedZooms] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({});
+
+  // Initialize component positions from data
+  useEffect(() => {
+    const positions: Record<string, { x: number; y: number }> = {};
+    components.forEach(component => {
+      positions[component.id] = { x: component.x, y: component.y };
+    });
+    setComponentPositions(positions);
+  }, []);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    viewBoxRef.current = viewBox;
+  }, [viewBox]);
+
+  // Reset manual control flag after a delay
+  useEffect(() => {
+    if (manualControl) {
+      if (manualControlTimer.current) {
+        clearTimeout(manualControlTimer.current);
+      }
+      manualControlTimer.current = window.setTimeout(() => {
+        setManualControl(false);
+      }, 2000);
+    }
+
+    return () => {
+      if (manualControlTimer.current) {
+        clearTimeout(manualControlTimer.current);
+      }
+    };
+  }, [manualControl, viewBox]);
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    getComponentPositions: () => componentPositions,
+    getZoom: () => viewBox,
+    getSavedZooms: () => savedZooms,
+    saveZoomForComponent: (componentId: string) => {
+      setSavedZooms(prev => ({
+        ...prev,
+        [componentId]: { ...viewBox }
+      }));
+    }
+  }), [componentPositions, viewBox, savedZooms]);
+
+  // Auto-zoom to component when selected
+  useEffect(() => {
+    if (!selectedComponent || manualControl) return;
+
+    const savedZoom = savedZooms[selectedComponent];
+    if (!savedZoom) return;
+
+    // Animate to saved zoom
+    const duration = 600;
+    const startTime = performance.now();
+    const startViewBox = { ...viewBoxRef.current };
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Easing function (ease-out-cubic)
+      const eased = 1 - Math.pow(1 - progress, 3);
+
+      setViewBox({
+        x: startViewBox.x + (savedZoom.x - startViewBox.x) * eased,
+        y: startViewBox.y + (savedZoom.y - startViewBox.y) * eased,
+        width: startViewBox.width + (savedZoom.width - startViewBox.width) * eased,
+        height: startViewBox.height + (savedZoom.height - startViewBox.height) * eased
+      });
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [selectedComponent, manualControl, savedZooms]);
+
+  // Get component center
+  const getComponentCenter = useCallback((componentId: string) => {
+    const pos = componentPositions[componentId];
+    if (!pos) return { x: 0, y: 0 };
+    return { x: pos.x + COMPONENT_WIDTH / 2, y: pos.y + COMPONENT_HEIGHT / 2 };
+  }, [componentPositions]);
+
+  // Get connection path
+  const getConnectionPath = useCallback((conn: SADConnection) => {
+    const from = getComponentCenter(conn.from);
+    const to = getComponentCenter(conn.to);
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+
+    // Use bezier curve for smooth connections
+    const cx1 = from.x + dx * 0.3;
+    const cy1 = from.y;
+    const cx2 = to.x - dx * 0.3;
+    const cy2 = to.y;
+
+    return `M ${from.x} ${from.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${to.x} ${to.y}`;
+  }, [getComponentCenter]);
+
+  // Zoom controls
+  const resetView = useCallback(() => {
+    setManualControl(true);
+    setViewBox({
+      x: -1000,
+      y: -400,
+      width: 2200,
+      height: 1000
+    });
+  }, []);
+
+  // Pan handling
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button === 0 && ((e.target as SVGElement).tagName === 'svg' || (e.target as SVGElement).tagName === 'rect')) {
+      setIsPanning(true);
+      setManualControl(true);
+      setPanStart({ x: e.clientX, y: e.clientY });
+    }
+  }, []);
+
+  const handleComponentMouseDown = useCallback((e: React.MouseEvent, componentId: string) => {
+    e.stopPropagation();
+    const pos = componentPositions[componentId];
+    if (!pos || !svgRef.current) return;
+
+    const svg = svgRef.current;
+    const rect = svg.getBoundingClientRect();
+    const svgX = viewBox.x + (e.clientX - rect.left) * (viewBox.width / rect.width);
+    const svgY = viewBox.y + (e.clientY - rect.top) * (viewBox.height / rect.height);
+
+    setIsDragging(true);
+    setDraggedComponentId(componentId);
+    setDragOffset({ x: svgX - pos.x, y: svgY - pos.y });
+    setManualControl(true);
+  }, [componentPositions, viewBox]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const now = Date.now();
+    if (now - lastMouseMove.current < 16) return;
+    lastMouseMove.current = now;
+
+    if (isPanning && !isDragging && svgRef.current) {
+      const svg = svgRef.current;
+      const rect = svg.getBoundingClientRect();
+      const scaleX = viewBox.width / rect.width;
+      const scaleY = viewBox.height / rect.height;
+      const dx = (e.clientX - panStart.x) * scaleX;
+      const dy = (e.clientY - panStart.y) * scaleY;
+      setViewBox((vb) => ({ ...vb, x: vb.x - dx, y: vb.y - dy }));
+      setPanStart({ x: e.clientX, y: e.clientY });
+    } else if (isDragging && draggedComponentId && svgRef.current) {
+      const svg = svgRef.current;
+      const rect = svg.getBoundingClientRect();
+      const svgX = viewBox.x + (e.clientX - rect.left) * (viewBox.width / rect.width);
+      const svgY = viewBox.y + (e.clientY - rect.top) * (viewBox.height / rect.height);
+
+      setComponentPositions(prev => ({
+        ...prev,
+        [draggedComponentId]: {
+          x: svgX - dragOffset.x,
+          y: svgY - dragOffset.y
+        }
+      }));
+    }
+  }, [isPanning, isDragging, draggedComponentId, viewBox, panStart, dragOffset]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false);
+    setIsDragging(false);
+    setDraggedComponentId(null);
+  }, []);
+
+  // Wheel zoom
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      setManualControl(true);
+      const factor = e.deltaY > 0 ? 1.1 : 0.9;
+      setViewBox((vb) => {
+        const newWidth = Math.max(600, Math.min(4000, vb.width * factor));
+        const newHeight = Math.max(360, Math.min(2400, vb.height * factor));
+        const mouseXRatio = e.offsetX / svg.clientWidth;
+        const mouseYRatio = e.offsetY / svg.clientHeight;
+        return {
+          x: vb.x + (vb.width - newWidth) * mouseXRatio,
+          y: vb.y + (vb.height - newHeight) * mouseYRatio,
+          width: newWidth,
+          height: newHeight,
+        };
+      });
+    };
+    svg.addEventListener('wheel', handleWheel, { passive: false });
+    return () => svg.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  // Get related components for highlighting
+  const getRelatedComponents = useCallback((componentId: string) => {
+    const related = new Set<string>();
+    connections.forEach(conn => {
+      if (conn.from === componentId) related.add(conn.to);
+      if (conn.to === componentId) related.add(conn.from);
+    });
+    return related;
+  }, []);
+
+  const relatedComponents = useMemo(() => {
+    if (!selectedComponent) return new Set<string>();
+    return getRelatedComponents(selectedComponent);
+  }, [selectedComponent, getRelatedComponents]);
+
+  // Get component type icon
+  const getComponentIcon = (type: string) => {
+    switch (type) {
+      case 'frontend': return '🖥️';
+      case 'backend': return '⚙️';
+      case 'database': return '🗄️';
+      case 'service': return '🔧';
+      case 'external': return '🌐';
+      default: return '📦';
+    }
+  };
+
+  return (
+    <div className="relative w-full h-full">
+      <svg
+        ref={svgRef}
+        viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
+        className="w-full h-full cursor-grab active:cursor-grabbing select-none"
+        style={{
+          minHeight: '500px',
+          userSelect: 'none',
+          willChange: 'transform',
+          transform: 'translateZ(0)'
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
+          </pattern>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+        </defs>
+
+        {/* Background */}
+        <rect x={viewBox.x - 200} y={viewBox.y - 200} width={viewBox.width + 400} height={viewBox.height + 400} fill="url(#grid)" />
+
+        {/* Connections */}
+        {connections.map((conn) => {
+          const isHighlighted = selectedComponent && (conn.from === selectedComponent || conn.to === selectedComponent);
+          const isDimmed = selectedComponent && !isHighlighted;
+
+          return (
+            <g key={conn.id} style={{ opacity: isDimmed ? 0.15 : 1, transition: 'opacity 0.3s' }}>
+              <path
+                d={getConnectionPath(conn)}
+                fill="none"
+                stroke={isHighlighted ? '#06b6d4' : '#475569'}
+                strokeWidth={isHighlighted ? 2.5 : 1.5}
+                markerEnd="url(#arrowhead)"
+              />
+              {/* Connection label */}
+              {(() => {
+                const from = getComponentCenter(conn.from);
+                const to = getComponentCenter(conn.to);
+                const labelX = (from.x + to.x) / 2;
+                const labelY = (from.y + to.y) / 2 - 10;
+                const fontSize = 14;
+                const labelWidth = Math.max(80, conn.label.length * 8);
+                const labelHeight = 24;
+
+                return (
+                  <g>
+                    <rect
+                      x={labelX - labelWidth / 2}
+                      y={labelY - labelHeight / 2}
+                      width={labelWidth}
+                      height={labelHeight}
+                      rx={4}
+                      fill="rgba(15, 23, 42, 0.95)"
+                      stroke={isHighlighted ? '#06b6d4' : '#475569'}
+                      strokeWidth={isHighlighted ? 2 : 1}
+                    />
+                    <text
+                      x={labelX}
+                      y={labelY + 5}
+                      textAnchor="middle"
+                      fontSize={fontSize}
+                      fill={isHighlighted ? '#67e8f9' : '#e2e8f0'}
+                      fontWeight={isHighlighted ? '700' : '500'}
+                    >
+                      {conn.label}
+                    </text>
+                  </g>
+                );
+              })()}
+            </g>
+          );
+        })}
+
+        {/* Components */}
+        {components.map((component) => {
+          const pos = componentPositions[component.id] || { x: component.x, y: component.y };
+          const isSelected = selectedComponent === component.id;
+          const isRelated = relatedComponents.has(component.id);
+          const isDimmed = selectedComponent && !isSelected && !isRelated;
+          const isDraggingThis = draggedComponentId === component.id;
+
+          return (
+            <g
+              key={component.id}
+              onClick={() => !isDragging && onSelectComponent(component.id)}
+              onMouseDown={(e) => handleComponentMouseDown(e, component.id)}
+              className={isDraggingThis ? 'cursor-grabbing' : 'cursor-grab'}
+              style={{
+                opacity: isDimmed ? 0.3 : 1,
+                transition: isDraggingThis ? 'none' : 'opacity 0.3s',
+              }}
+            >
+              {/* Component box */}
+              <rect
+                x={pos.x}
+                y={pos.y}
+                width={COMPONENT_WIDTH}
+                height={COMPONENT_HEIGHT}
+                rx={8}
+                fill={isSelected ? `${component.color}30` : `${component.color}10`}
+                stroke={isSelected ? component.color : `${component.color}66`}
+                strokeWidth={isSelected ? 3 : 1.5}
+              />
+
+              {/* Component icon */}
+              <text
+                x={pos.x + COMPONENT_WIDTH / 2}
+                y={pos.y + 35}
+                textAnchor="middle"
+                fontSize={32}
+                className="pointer-events-none select-none"
+              >
+                {getComponentIcon(component.type)}
+              </text>
+
+              {/* Component label */}
+              <text
+                x={pos.x + COMPONENT_WIDTH / 2}
+                y={pos.y + 65}
+                textAnchor="middle"
+                fontSize={16}
+                fontWeight="600"
+                fill="white"
+                className="pointer-events-none select-none"
+              >
+                {component.label}
+              </text>
+
+              {/* Component description */}
+              <text
+                x={pos.x + COMPONENT_WIDTH / 2}
+                y={pos.y + 85}
+                textAnchor="middle"
+                fontSize={10}
+                fill="#94a3b8"
+                className="pointer-events-none select-none"
+              >
+                {component.description}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}));
+
+export default SADCanvas;
