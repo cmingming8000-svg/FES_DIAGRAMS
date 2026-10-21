@@ -1,10 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  GraduationCap, UserCog, Shield, Building2, Lock, FileEdit, EyeOff, 
-  Settings, CheckCircle, BarChart3, ClipboardCheck, Brain, FileText,
-  Database, HardDrive, Key, FileOutput
-} from 'lucide-react';
 import { DFDNode, DFDFlow, UserRole } from '../data/dfdData';
 
 interface DFDCanvasProps {
@@ -20,31 +15,31 @@ interface DFDCanvasProps {
 }
 
 const NODE_WIDTH = 220;
-const NODE_HEIGHT = 140; // Increased to match circle diameter better
-const BASE_VIEWBOX_WIDTH = 2700; // Increased to accommodate wider layout
+const NODE_HEIGHT = 140;
+const BASE_VIEWBOX_WIDTH = 2700;
 
-// Icon mapping
-const iconMap: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
-  GraduationCap,
-  UserCog,
-  Shield,
-  Building2,
-  Lock,
-  FileEdit,
-  EyeOff,
-  Settings,
-  CheckCircle,
-  BarChart3,
-  ClipboardCheck,
-  Brain,
-  FileText,
-  Database,
-  HardDrive,
-  Key,
-  FileOutput
+// Simple text labels instead of icons for performance
+const iconLabels: Record<string, string> = {
+  GraduationCap: 'STU',
+  UserCog: 'FAC',
+  Shield: 'HR',
+  Building2: 'DEAN',
+  Lock: 'AUTH',
+  FileEdit: 'EVAL',
+  EyeOff: 'PII',
+  Settings: 'ADM',
+  CheckCircle: 'REL',
+  BarChart3: 'DASH',
+  ClipboardCheck: 'OVER',
+  Brain: 'TNA',
+  FileText: 'AUD',
+  Database: 'DB',
+  HardDrive: 'LOG',
+  Key: 'SES',
+  FileOutput: 'RPT'
 };
 
-export default function DFDCanvas({
+const DFDCanvas = memo(function DFDCanvas({
   nodes,
   flows,
   selectedNode,
@@ -64,6 +59,7 @@ export default function DFDCanvas({
   const [hoveredFlow, setHoveredFlow] = useState<string | null>(null);
   const [manualControl, setManualControl] = useState(false);
   const manualControlTimer = useRef<number | null>(null);
+  const lastMouseMove = useRef<number>(0);
   
   // Drag state
   const [isDragging, setIsDragging] = useState(false);
@@ -103,16 +99,13 @@ export default function DFDCanvas({
     };
   }, [manualControl, viewBox]);
 
-  // Calculate zoom scale for text elements
-  // When zoomed IN (small viewBox): text shrinks naturally (you're closer)
-  // When zoomed OUT (large viewBox): text grows to stay readable
-  const rawZoomScale = viewBox.width / BASE_VIEWBOX_WIDTH;
-  // Apply 15% boost to zoom-out scaling so nodes grow larger when zoomed out
-  const zoomScale = Math.max(0.5, Math.min(7.0, rawZoomScale * 1.15));
+  // Calculate zoom scale for text elements - memoized for performance
+  const rawZoomScale = useMemo(() => viewBox.width / BASE_VIEWBOX_WIDTH, [viewBox.width]);
+  const zoomScale = useMemo(() => Math.max(0.5, Math.min(7.0, rawZoomScale * 1.15)), [rawZoomScale]);
   
   // Hide secondary text when zoomed out too far to prevent overlaps
-  const isZoomedOutFar = rawZoomScale > 1.4;
-  const isZoomedOutMedium = rawZoomScale > 1.1;
+  const isZoomedOutFar = useMemo(() => rawZoomScale > 1.4, [rawZoomScale]);
+  const isZoomedOutMedium = useMemo(() => rawZoomScale > 1.1, [rawZoomScale]);
 
   // Collision detection removed - user has arranged nodes intentionally
   const maxSafeScale = 10.0; // Allow nodes to scale freely
@@ -251,6 +244,11 @@ export default function DFDCanvas({
   }, [nodePositions, viewBox]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    // Throttle to ~60fps for smoother performance
+    const now = Date.now();
+    if (now - lastMouseMove.current < 16) return;
+    lastMouseMove.current = now;
+
     if (isPanning && !isDragging && svgRef.current) {
       const svg = svgRef.current;
       const rect = svg.getBoundingClientRect();
@@ -542,7 +540,12 @@ export default function DFDCanvas({
         ref={svgRef}
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
         className="w-full h-full cursor-grab active:cursor-grabbing select-none"
-        style={{ minHeight: '500px', userSelect: 'none' }}
+        style={{ 
+          minHeight: '500px', 
+          userSelect: 'none',
+          willChange: 'transform',
+          transform: 'translateZ(0)' // Force GPU acceleration
+        }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -726,28 +729,11 @@ export default function DFDCanvas({
                   </g>
                 );
               })()}
-              {/* Animated particles for current flow - showing data movement */}
+              {/* Animated particle for current flow - optimized for performance */}
               {isCurrent && (
-                <>
-                  {/* Main data packet */}
-                  <circle r="6" fill="#22d3ee" opacity="0.9" filter="url(#glow-strong)">
-                    <animateMotion dur="1.5s" repeatCount="indefinite" path={getFlowPath(flow)} />
-                  </circle>
-                  {/* Inner bright core */}
-                  <circle r="3" fill="white" opacity="1">
-                    <animateMotion dur="1.5s" repeatCount="indefinite" path={getFlowPath(flow)} />
-                  </circle>
-                  {/* Trailing particles */}
-                  <circle r="4" fill="#22d3ee" opacity="0.6">
-                    <animateMotion dur="1.5s" repeatCount="indefinite" path={getFlowPath(flow)} begin="0.3s" />
-                  </circle>
-                  <circle r="3" fill="#22d3ee" opacity="0.4">
-                    <animateMotion dur="1.5s" repeatCount="indefinite" path={getFlowPath(flow)} begin="0.6s" />
-                  </circle>
-                  <circle r="2" fill="#22d3ee" opacity="0.2">
-                    <animateMotion dur="1.5s" repeatCount="indefinite" path={getFlowPath(flow)} begin="0.9s" />
-                  </circle>
-                </>
+                <circle r="5" fill="#22d3ee" opacity="0.9">
+                  <animateMotion dur="2s" repeatCount="indefinite" path={getFlowPath(flow)} />
+                </circle>
               )}
               {/* Flow label on hover or when current - scaled with view (hide when zoomed out far) */}
               {!isZoomedOutFar && (isCurrent || isHovered) && (() => {
@@ -866,62 +852,35 @@ export default function DFDCanvas({
                 transform: `scale(${totalScale})`,
               }}
             >
-              {/* Outer glow for current-step nodes */}
+              {/* Outer highlight for current-step nodes */}
               {isCurrent && (
-                <>
-                  <rect
-                    x={pos.x - 8}
-                    y={pos.y - 8}
-                    width={NODE_WIDTH + 16}
-                    height={NODE_HEIGHT + 16}
-                    rx={node.type === 'process' ? (NODE_WIDTH + 16) / 2 : 18}
-                    fill="none"
-                    stroke={node.color}
-                    strokeWidth="2"
-                    opacity="0.6"
-                    filter="url(#glow-strong)"
-                  />
-                  <rect
-                    x={pos.x - 4}
-                    y={pos.y - 4}
-                    width={NODE_WIDTH + 8}
-                    height={NODE_HEIGHT + 8}
-                    rx={node.type === 'process' ? (NODE_WIDTH + 8) / 2 : 16}
-                    fill={`${node.color}20`}
-                    stroke={node.color}
-                    strokeWidth="2"
-                  />
-                </>
+                <rect
+                  x={pos.x - 4}
+                  y={pos.y - 4}
+                  width={NODE_WIDTH + 8}
+                  height={NODE_HEIGHT + 8}
+                  rx={node.type === 'process' ? (NODE_WIDTH + 8) / 2 : 16}
+                  fill={`${node.color}20`}
+                  stroke={node.color}
+                  strokeWidth="2"
+                />
               )}
 
-              {/* Pulsing glow for auth entry point */}
+              {/* Pulsing border for auth entry point */}
               {isAuthEntry && (
-                <>
-                  <motion.rect
-                    x={pos.x - 10}
-                    y={pos.y - 10}
-                    width={NODE_WIDTH + 20}
-                    height={NODE_HEIGHT + 20}
-                    rx={node.type === 'process' ? (NODE_WIDTH + 20) / 2 : 20}
-                    fill="none"
-                    stroke="#06b6d4"
-                    strokeWidth="2"
-                    initial={{ opacity: 0.3 }}
-                    animate={{ opacity: [0.3, 0.8, 0.3] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    filter="url(#glow-strong)"
-                  />
-                  <rect
-                    x={pos.x - 5}
-                    y={pos.y - 5}
-                    width={NODE_WIDTH + 10}
-                    height={NODE_HEIGHT + 10}
-                    rx={node.type === 'process' ? (NODE_WIDTH + 10) / 2 : 17}
-                    fill="#06b6d415"
-                    stroke="#06b6d4"
-                    strokeWidth="2.5"
-                  />
-                </>
+                <motion.rect
+                  x={pos.x - 5}
+                  y={pos.y - 5}
+                  width={NODE_WIDTH + 10}
+                  height={NODE_HEIGHT + 10}
+                  rx={node.type === 'process' ? (NODE_WIDTH + 10) / 2 : 17}
+                  fill="#06b6d415"
+                  stroke="#06b6d4"
+                  strokeWidth="2.5"
+                  initial={{ opacity: 0.5 }}
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
               )}
 
               {/* Node shape */}
@@ -965,34 +924,19 @@ export default function DFDCanvas({
                 />
               )}
 
-              {/* Icon - Lucide icon, sized by tier */}
-              {(() => {
-                const IconComponent = iconMap[node.icon];
-                if (!IconComponent) return null;
-                const iconSizePx = 48;
-                // Center icon vertically in the node (account for label space)
-                const iconY = pos.y + 35;
-                return (
-                  <foreignObject
-                    x={cx - iconSizePx / 2}
-                    y={iconY - iconSizePx / 2}
-                    width={iconSizePx}
-                    height={iconSizePx}
-                    className="pointer-events-none select-none"
-                  >
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <IconComponent 
-                        className="w-full h-full" 
-                        style={{ 
-                          color: isAuthEntry ? '#06b6d4' : isCurrent ? 'white' : node.color,
-                          width: iconSizePx,
-                          height: iconSizePx
-                        }} 
-                      />
-                    </div>
-                  </foreignObject>
-                );
-              })()}
+              {/* Icon - Simple text label for performance */}
+              <text
+                x={cx}
+                y={pos.y + 40}
+                textAnchor="middle"
+                className="pointer-events-none select-none"
+                fontSize={28}
+                fontWeight="700"
+                fill={isAuthEntry ? '#06b6d4' : isCurrent ? 'white' : node.color}
+                opacity={0.9}
+              >
+                {iconLabels[node.icon] || node.icon}
+              </text>
 
               {/* Label - sized by tier, scaled by parent group */}
               {!isZoomedOutFar && (
@@ -1041,26 +985,13 @@ export default function DFDCanvas({
                 </text>
               )}
 
-              {/* Pulse ring for current step nodes */}
-              {isCurrent && (
-                <motion.rect
-                  x={pos.x - 12}
-                  y={pos.y - 12}
-                  width={NODE_WIDTH + 24}
-                  height={NODE_HEIGHT + 24}
-                  rx={node.type === 'process' ? (NODE_WIDTH + 24) / 2 : 22}
-                  fill="none"
-                  stroke={node.color}
-                  strokeWidth="1.5"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 0.7, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
-              )}
+
             </g>
           );
         })}
       </svg>
     </div>
   );
-}
+});
+
+export default DFDCanvas;
