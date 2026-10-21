@@ -254,17 +254,17 @@ export default function DFDCanvas({
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#475569" />
+          <marker id="arrowhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+            <polygon points="0 0, 10 4, 0 8" fill="#64748b" />
           </marker>
           <marker id="arrowhead-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
             <polygon points="0 0, 8 3, 0 6" fill="rgba(71,85,105,0.15)" />
           </marker>
-          <marker id="arrowhead-active" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#06b6d4" />
+          <marker id="arrowhead-active" markerWidth="12" markerHeight="10" refX="11" refY="5" orient="auto">
+            <polygon points="0 0, 12 5, 0 10" fill="#06b6d4" />
           </marker>
-          <marker id="arrowhead-current" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee" />
+          <marker id="arrowhead-current" markerWidth="14" markerHeight="12" refX="13" refY="6" orient="auto">
+            <polygon points="0 0, 14 6, 0 12" fill="#22d3ee" />
           </marker>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
@@ -307,53 +307,167 @@ export default function DFDCanvas({
                   isHovered ? '#64748b' :
                   'rgba(71,85,105,0.06)'
                 }
-                strokeWidth={isCurrent ? 3 : isHovered ? 2 : active ? 1.8 : 0.5}
+                strokeWidth={isCurrent ? 4 : isHovered ? 2.5 : active ? 2 : 0.5}
                 strokeDasharray={active ? 'none' : '4 4'}
                 markerEnd={isCurrent ? 'url(#arrowhead-current)' : active ? 'url(#arrowhead-active)' : 'url(#arrowhead-dim)'}
                 filter={isCurrent ? 'url(#glow)' : undefined}
                 className="transition-all duration-500"
               />
-              {/* Animated particle for current flow */}
+              {/* Data direction and type indicators for current flow */}
+              {isCurrent && (() => {
+                const fromNode = nodes.find(n => n.id === flow.from);
+                const toNode = nodes.find(n => n.id === flow.to);
+                if (!fromNode || !toNode) return null;
+                
+                // Determine if this is a SEND or RECEIVE operation
+                const isSend = fromNode.type === 'external' || fromNode.type === 'process';
+                const directionLabel = isSend ? 'SEND' : 'RECEIVE';
+                const directionColor = isSend ? '#f59e0b' : '#10b981';
+                
+                // Infer data type from flow label
+                let dataType = 'DATA';
+                let dataTypeColor = '#64748b';
+                const labelLower = flow.label.toLowerCase();
+                if (labelLower.includes('credential') || labelLower.includes('login') || labelLower.includes('password')) {
+                  dataType = 'CREDENTIALS';
+                  dataTypeColor = '#ef4444';
+                } else if (labelLower.includes('session') || labelLower.includes('token')) {
+                  dataType = 'SESSION';
+                  dataTypeColor = '#8b5cf6';
+                } else if (labelLower.includes('evaluation') || labelLower.includes('rating')) {
+                  dataType = 'EVALUATION';
+                  dataTypeColor = '#3b82f6';
+                } else if (labelLower.includes('audit') || labelLower.includes('log')) {
+                  dataType = 'AUDIT';
+                  dataTypeColor = '#6366f1';
+                } else if (labelLower.includes('report') || labelLower.includes('pdf') || labelLower.includes('excel')) {
+                  dataType = 'REPORT';
+                  dataTypeColor = '#0ea5e9';
+                } else if (labelLower.includes('analytics') || labelLower.includes('tna') || labelLower.includes('insight')) {
+                  dataType = 'ANALYTICS';
+                  dataTypeColor = '#14b8a6';
+                }
+                
+                // Position labels along the path
+                const midX = (getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2;
+                const midY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2;
+                const labelOffset = 25 * zoomScale;
+                
+                return (
+                  <g>
+                    {/* Direction badge */}
+                    <rect
+                      x={midX - 45 * zoomScale}
+                      y={midY - labelOffset - 10 * zoomScale}
+                      width={40 * zoomScale}
+                      height={16 * zoomScale}
+                      rx={4 * zoomScale}
+                      fill={directionColor}
+                      opacity="0.9"
+                    />
+                    <text
+                      x={midX - 25 * zoomScale}
+                      y={midY - labelOffset - 1 * zoomScale}
+                      textAnchor="middle"
+                      fontSize={8 * zoomScale}
+                      fontWeight="700"
+                      fill="white"
+                      className="pointer-events-none"
+                    >
+                      {directionLabel}
+                    </text>
+                    
+                    {/* Data type badge */}
+                    <rect
+                      x={midX + 5 * zoomScale}
+                      y={midY - labelOffset - 10 * zoomScale}
+                      width={50 * zoomScale}
+                      height={16 * zoomScale}
+                      rx={4 * zoomScale}
+                      fill={dataTypeColor}
+                      opacity="0.85"
+                    />
+                    <text
+                      x={midX + 30 * zoomScale}
+                      y={midY - labelOffset - 1 * zoomScale}
+                      textAnchor="middle"
+                      fontSize={7 * zoomScale}
+                      fontWeight="600"
+                      fill="white"
+                      className="pointer-events-none"
+                    >
+                      {dataType}
+                    </text>
+                  </g>
+                );
+              })()}
+              {/* Animated particles for current flow - showing data movement */}
               {isCurrent && (
                 <>
-                  <circle r="5" fill="#22d3ee" opacity="0.8" filter="url(#glow-strong)">
-                    <animateMotion dur="2s" repeatCount="indefinite" path={getFlowPath(flow)} />
+                  {/* Main data packet */}
+                  <circle r="6" fill="#22d3ee" opacity="0.9" filter="url(#glow-strong)">
+                    <animateMotion dur="1.5s" repeatCount="indefinite" path={getFlowPath(flow)} />
                   </circle>
-                  <circle r="3" fill="white" opacity="0.9">
-                    <animateMotion dur="2s" repeatCount="indefinite" path={getFlowPath(flow)} />
+                  {/* Inner bright core */}
+                  <circle r="3" fill="white" opacity="1">
+                    <animateMotion dur="1.5s" repeatCount="indefinite" path={getFlowPath(flow)} />
+                  </circle>
+                  {/* Trailing particles */}
+                  <circle r="4" fill="#22d3ee" opacity="0.6">
+                    <animateMotion dur="1.5s" repeatCount="indefinite" path={getFlowPath(flow)} begin="0.3s" />
+                  </circle>
+                  <circle r="3" fill="#22d3ee" opacity="0.4">
+                    <animateMotion dur="1.5s" repeatCount="indefinite" path={getFlowPath(flow)} begin="0.6s" />
+                  </circle>
+                  <circle r="2" fill="#22d3ee" opacity="0.2">
+                    <animateMotion dur="1.5s" repeatCount="indefinite" path={getFlowPath(flow)} begin="0.9s" />
                   </circle>
                 </>
               )}
               {/* Flow label on hover or when current - counter-scaled */}
               {(isCurrent || isHovered) && (() => {
                 const labelX = (getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2;
-                const labelY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 - 8;
+                const labelY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 + 35 * zoomScale;
                 const flowLabelSize = 11 * zoomScale;
-                const padding = 8 * zoomScale;
-                const boxHeight = 20 * zoomScale;
+                const descSize = 9 * zoomScale;
+                const boxHeight = 40 * zoomScale;
                 // Estimate text width based on character count
-                const estimatedWidth = Math.max(80, flow.label.length * 6) * zoomScale;
+                const estimatedWidth = Math.max(120, Math.max(flow.label.length, flow.description.length) * 5.5) * zoomScale;
+                
                 return (
                   <g>
+                    {/* Background box */}
                     <rect
                       x={labelX - estimatedWidth / 2}
-                      y={labelY - boxHeight / 2 - 2 * zoomScale}
+                      y={labelY - boxHeight / 2}
                       width={estimatedWidth}
                       height={boxHeight}
-                      rx={5 * zoomScale}
+                      rx={6 * zoomScale}
                       fill="rgba(15,23,42,0.95)"
                       stroke={isCurrent ? '#22d3ee55' : '#47556955'}
                       strokeWidth={1 * zoomScale}
                     />
+                    {/* Flow label */}
                     <text
                       x={labelX}
-                      y={labelY + flowLabelSize * 0.35}
+                      y={labelY - 6 * zoomScale}
                       textAnchor="middle"
-                      className="font-semibold pointer-events-none"
+                      className="font-bold pointer-events-none"
                       fontSize={flowLabelSize}
                       fill={isCurrent ? '#67e8f9' : '#cbd5e1'}
                     >
                       {flow.label}
+                    </text>
+                    {/* Flow description */}
+                    <text
+                      x={labelX}
+                      y={labelY + 8 * zoomScale}
+                      textAnchor="middle"
+                      className="pointer-events-none"
+                      fontSize={descSize}
+                      fill={isCurrent ? '#94a3b8' : '#64748b'}
+                    >
+                      {flow.description}
                     </text>
                   </g>
                 );
