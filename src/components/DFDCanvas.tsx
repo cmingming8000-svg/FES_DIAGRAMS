@@ -114,31 +114,8 @@ export default function DFDCanvas({
   const isZoomedOutFar = rawZoomScale > 1.4;
   const isZoomedOutMedium = rawZoomScale > 1.1;
 
-  // Calculate maximum safe scale to prevent node overlap
-  const calculateMaxSafeScale = () => {
-    let minDistance = Infinity;
-    
-    // Find minimum distance between any two nodes
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const node1 = nodes[i];
-        const node2 = nodes[j];
-        const dx = (node1.x + NODE_WIDTH / 2) - (node2.x + NODE_WIDTH / 2);
-        const dy = (node1.y + NODE_HEIGHT / 2) - (node2.y + NODE_HEIGHT / 2);
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        minDistance = Math.min(minDistance, distance);
-      }
-    }
-    
-    // Calculate max scale: nodes should not exceed 95% of minimum distance
-    // Node diagonal at scale 1 is sqrt(220^2 + 120^2) = ~250
-    const nodeDiagonal = Math.sqrt(NODE_WIDTH * NODE_WIDTH + NODE_HEIGHT * NODE_HEIGHT);
-    const maxScale = (minDistance * 0.95) / nodeDiagonal;
-    
-    return Math.min(1.0, maxScale); // Allow at least 1.0 scale so nodes are readable
-  };
-
-  const maxSafeScale = calculateMaxSafeScale();
+  // Collision detection removed - user has arranged nodes intentionally
+  const maxSafeScale = 10.0; // Allow nodes to scale freely
 
   const getNodeCenter = (nodeId: string) => {
     const pos = nodePositions[nodeId];
