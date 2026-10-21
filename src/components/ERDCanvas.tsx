@@ -9,9 +9,9 @@ interface ERDCanvasProps {
   onSelectEntity: (id: string) => void;
 }
 
-const ENTITY_WIDTH = 280;
-const ENTITY_HEADER_HEIGHT = 50;
-const ATTRIBUTE_HEIGHT = 28;
+const ENTITY_WIDTH = 320;
+const ENTITY_HEADER_HEIGHT = 60;
+const ATTRIBUTE_HEIGHT = 36;
 const BASE_VIEWBOX_WIDTH = 2700;
 
 const ERDCanvas = memo(function ERDCanvas({
@@ -321,7 +321,7 @@ const ERDCanvas = memo(function ERDCanvas({
                   x={(getEntityCenter(rel.from).x + getEntityCenter(rel.to).x) / 2}
                   y={(getEntityCenter(rel.from).y + getEntityCenter(rel.to).y) / 2 - 10}
                   textAnchor="middle"
-                  fontSize={12 * zoomScale}
+                  fontSize={16 * zoomScale}
                   fill={isHighlighted ? '#67e8f9' : '#94a3b8'}
                   fontWeight={isHighlighted ? '600' : '400'}
                 >
@@ -392,7 +392,7 @@ const ERDCanvas = memo(function ERDCanvas({
                 x={pos.x + ENTITY_WIDTH / 2}
                 y={pos.y + ENTITY_HEADER_HEIGHT / 2 + 5}
                 textAnchor="middle"
-                fontSize={18 * zoomScale}
+                fontSize={24 * zoomScale}
                 fontWeight="700"
                 fill="white"
                 className="pointer-events-none select-none"
@@ -412,7 +412,7 @@ const ERDCanvas = memo(function ERDCanvas({
                       <text
                         x={pos.x + 10}
                         y={attrY + ATTRIBUTE_HEIGHT / 2 + 4}
-                        fontSize={10 * zoomScale}
+                        fontSize={14 * zoomScale}
                         fontWeight="700"
                         fill="#f59e0b"
                         className="pointer-events-none select-none"
@@ -424,7 +424,7 @@ const ERDCanvas = memo(function ERDCanvas({
                       <text
                         x={pos.x + 10}
                         y={attrY + ATTRIBUTE_HEIGHT / 2 + 4}
-                        fontSize={10 * zoomScale}
+                        fontSize={14 * zoomScale}
                         fontWeight="700"
                         fill="#06b6d4"
                         className="pointer-events-none select-none"
@@ -435,9 +435,9 @@ const ERDCanvas = memo(function ERDCanvas({
                     
                     {/* Attribute name */}
                     <text
-                      x={pos.x + (attr.isPrimaryKey || attr.isForeignKey ? 35 : 15)}
+                      x={pos.x + (attr.isPrimaryKey || attr.isForeignKey ? 45 : 15)}
                       y={attrY + ATTRIBUTE_HEIGHT / 2 + 4}
-                      fontSize={12 * zoomScale}
+                      fontSize={16 * zoomScale}
                       fill="white"
                       className="pointer-events-none select-none"
                     >
@@ -449,7 +449,7 @@ const ERDCanvas = memo(function ERDCanvas({
                       x={pos.x + ENTITY_WIDTH - 15}
                       y={attrY + ATTRIBUTE_HEIGHT / 2 + 4}
                       textAnchor="end"
-                      fontSize={10 * zoomScale}
+                      fontSize={14 * zoomScale}
                       fill={typeColor}
                       className="pointer-events-none select-none"
                     >
