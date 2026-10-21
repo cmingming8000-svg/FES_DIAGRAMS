@@ -46,6 +46,8 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
 
   // Saved zoom levels per component
   const [savedZooms, setSavedZooms] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({});
+  const animationFrameRef = useRef<number | null>(null);
+  const lastAutoFollowTime = useRef<number>(0);
 
   // Initialize component positions from data
   useEffect(() => {
@@ -96,8 +98,19 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
   useEffect(() => {
     if (!selectedComponent || manualControl) return;
 
+    // Debounce: prevent rapid successive auto-follows
+    const now = Date.now();
+    if (now - lastAutoFollowTime.current < 100) return;
+    lastAutoFollowTime.current = now;
+
     const pos = componentPositions[selectedComponent];
     if (!pos) return;
+
+    // Cancel any existing animation
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
 
     // Calculate target viewBox centered on the component
     const padding = 300;
@@ -111,31 +124,47 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
       height: targetHeight
     };
 
-    // Animate to target
-    const duration = 600;
+    // Animate to target - optimized for performance
+    const duration = 400; // ms - faster for better responsiveness
     const startTime = performance.now();
     const startViewBox = { ...viewBoxRef.current };
+
+    // Pre-calculate deltas for faster interpolation
+    const deltaX = targetViewBox.x - startViewBox.x;
+    const deltaY = targetViewBox.y - startViewBox.y;
+    const deltaWidth = targetViewBox.width - startViewBox.width;
+    const deltaHeight = targetViewBox.height - startViewBox.height;
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      // Easing function (ease-out-cubic)
-      const eased = 1 - Math.pow(1 - progress, 3);
+      // Simplified easing: ease-out-quad (faster than cubic)
+      const eased = 1 - (1 - progress) * (1 - progress);
 
       setViewBox({
-        x: startViewBox.x + (targetViewBox.x - startViewBox.x) * eased,
-        y: startViewBox.y + (targetViewBox.y - startViewBox.y) * eased,
-        width: startViewBox.width + (targetViewBox.width - startViewBox.width) * eased,
-        height: startViewBox.height + (targetViewBox.height - startViewBox.height) * eased
+        x: startViewBox.x + deltaX * eased,
+        y: startViewBox.y + deltaY * eased,
+        width: startViewBox.width + deltaWidth * eased,
+        height: startViewBox.height + deltaHeight * eased
       });
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animationFrameRef.current = null;
       }
     };
 
-    requestAnimationFrame(animate);
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    // Cleanup: cancel animation on unmount or dependency change
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
   }, [selectedComponent, manualControl, componentPositions]);
 
   // Get component center

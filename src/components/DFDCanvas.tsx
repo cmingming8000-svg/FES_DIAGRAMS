@@ -71,6 +71,8 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(function DFDC
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
+  const animationFrameRef = useRef<number | null>(null);
+  const lastAutoFollowTime = useRef<number>(0);
   
   // Initialize node positions from data
   useEffect(() => {
@@ -441,6 +443,17 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(function DFDC
   useEffect(() => {
     if (!role || !currentFlow || manualControl) return;
     
+    // Debounce: prevent rapid successive auto-follows
+    const now = Date.now();
+    if (now - lastAutoFollowTime.current < 100) return;
+    lastAutoFollowTime.current = now;
+    
+    // Cancel any existing animation
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
     const fromNode = nodes.find(n => n.id === currentFlow.from);
     const toNode = nodes.find(n => n.id === currentFlow.to);
     
@@ -483,32 +496,48 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(function DFDC
       height: finalHeight
     };
     
-    // Animate viewBox transition
-    const duration = 800; // ms - slightly longer for smoother feel
+    // Animate viewBox transition - optimized for performance
+    const duration = 400; // ms - faster for better responsiveness
     const startTime = performance.now();
     const startViewBox = { ...viewBoxRef.current };
+    
+    // Pre-calculate deltas for faster interpolation
+    const deltaX = targetViewBox.x - startViewBox.x;
+    const deltaY = targetViewBox.y - startViewBox.y;
+    const deltaWidth = targetViewBox.width - startViewBox.width;
+    const deltaHeight = targetViewBox.height - startViewBox.height;
     
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Easing function (ease-out-cubic)
-      const eased = 1 - Math.pow(1 - progress, 3);
+      // Simplified easing: ease-out-quad (faster than cubic)
+      const eased = 1 - (1 - progress) * (1 - progress);
       
       setViewBox({
-        x: startViewBox.x + (targetViewBox.x - startViewBox.x) * eased,
-        y: startViewBox.y + (targetViewBox.y - startViewBox.y) * eased,
-        width: startViewBox.width + (targetViewBox.width - startViewBox.width) * eased,
-        height: startViewBox.height + (targetViewBox.height - startViewBox.height) * eased
+        x: startViewBox.x + deltaX * eased,
+        y: startViewBox.y + deltaY * eased,
+        width: startViewBox.width + deltaWidth * eased,
+        height: startViewBox.height + deltaHeight * eased
       });
       
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animationFrameRef.current = null;
       }
     };
     
-    requestAnimationFrame(animate);
-  }, [currentStep, role, manualControl, nodePositions]);
+    animationFrameRef.current = requestAnimationFrame(animate);
+    
+    // Cleanup: cancel animation on unmount or dependency change
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+  }, [currentStep, role, manualControl, nodePositions, currentFlow, nodes]);
 
   return (
     <div className="relative w-full h-full">

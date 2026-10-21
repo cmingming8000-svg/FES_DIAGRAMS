@@ -63,6 +63,8 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
     "tna_snapshots": { x: -935.1554154181415, y: -244.49357498895034, width: 2251.6734254763974, height: 1000.7437446561779 },
     "release_signatures": { x: -984.6065144336351, y: -249.9720988944531, width: 2251.6734254763974, height: 1000.7437446561779 }
   });
+  const animationFrameRef = useRef<number | null>(null);
+  const lastAutoFollowTime = useRef<number>(0);
   
   // Initialize entity positions from data
   useEffect(() => {
@@ -382,34 +384,61 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
   useEffect(() => {
     if (!selectedEntity || manualControl) return;
     
+    // Debounce: prevent rapid successive auto-follows
+    const now = Date.now();
+    if (now - lastAutoFollowTime.current < 100) return;
+    lastAutoFollowTime.current = now;
+    
     const savedZoom = savedZooms[selectedEntity];
     if (!savedZoom) return;
     
-    // Animate to saved zoom
-    const duration = 600;
+    // Cancel any existing animation
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
+    // Animate to saved zoom - optimized for performance
+    const duration = 400; // ms - faster for better responsiveness
     const startTime = performance.now();
     const startViewBox = { ...viewBoxRef.current };
+    
+    // Pre-calculate deltas for faster interpolation
+    const deltaX = savedZoom.x - startViewBox.x;
+    const deltaY = savedZoom.y - startViewBox.y;
+    const deltaWidth = savedZoom.width - startViewBox.width;
+    const deltaHeight = savedZoom.height - startViewBox.height;
     
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Easing function (ease-out-cubic)
-      const eased = 1 - Math.pow(1 - progress, 3);
+      // Simplified easing: ease-out-quad (faster than cubic)
+      const eased = 1 - (1 - progress) * (1 - progress);
       
       setViewBox({
-        x: startViewBox.x + (savedZoom.x - startViewBox.x) * eased,
-        y: startViewBox.y + (savedZoom.y - startViewBox.y) * eased,
-        width: startViewBox.width + (savedZoom.width - startViewBox.width) * eased,
-        height: startViewBox.height + (savedZoom.height - startViewBox.height) * eased
+        x: startViewBox.x + deltaX * eased,
+        y: startViewBox.y + deltaY * eased,
+        width: startViewBox.width + deltaWidth * eased,
+        height: startViewBox.height + deltaHeight * eased
       });
       
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animationFrameRef.current = null;
       }
     };
     
-    requestAnimationFrame(animate);
+    animationFrameRef.current = requestAnimationFrame(animate);
+    
+    // Cleanup: cancel animation on unmount or dependency change
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
   }, [selectedEntity, manualControl, savedZooms]);
 
   // Get related entities for highlighting
