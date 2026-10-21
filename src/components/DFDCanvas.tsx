@@ -298,11 +298,15 @@ export default function DFDCanvas({
     const minY = Math.min(fromNode.y, toNode.y) - padding;
     const maxY = Math.max(fromNode.y + NODE_HEIGHT, toNode.y + NODE_HEIGHT) + padding;
     
+    // Calculate target dimensions with minimum size constraints for readability
+    const minWidth = 800; // Minimum width to keep nodes readable
+    const minHeight = 500; // Minimum height to keep nodes readable
+    
     const targetViewBox = {
       x: minX,
       y: minY,
-      width: maxX - minX,
-      height: maxY - minY
+      width: Math.max(minWidth, maxX - minX),
+      height: Math.max(minHeight, maxY - minY)
     };
     
     // Animate viewBox transition
