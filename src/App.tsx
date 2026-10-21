@@ -135,74 +135,8 @@ function App() {
           </div>
         </header>
 
-        {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left Panel - Info */}
-          <div className="w-80 flex-shrink-0 border-r border-white/5 p-4 overflow-y-auto flex flex-col gap-5">
-            {!selectedRole && (
-              <div className="bg-slate-900/50 backdrop-blur border border-white/10 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">🔐</span>
-                  <h3 className="text-sm font-bold text-white">Get Started</h3>
-                </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Click the <span className="text-cyan-400 font-semibold">Authentication</span> node on the canvas to choose your login role and trace the data flow.
-                </p>
-              </div>
-            )}
-
-            <AnimatePresence mode="wait">
-              {selectedRole && (
-                <motion.div
-                  key="info-panel"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                >
-                  <InfoPanel
-                    selectedNode={selectedNodeData}
-                    currentStep={currentStep}
-                    role={selectedRole}
-                    flows={roleFlows}
-                    allFlows={flows}
-                    onNextStep={handleNextStep}
-                    onPrevStep={handlePrevStep}
-                    totalSteps={totalSteps}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Legend */}
-            <div className="mt-auto pt-4 border-t border-white/5">
-              <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Legend</div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-5 rounded-md border border-cyan-500/50 bg-cyan-500/10" />
-                  <span className="text-xs text-slate-300">External Entity</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full border border-purple-500/50 bg-purple-500/10" />
-                  <span className="text-xs text-slate-300">Process</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-5 rounded-sm border border-slate-500/50 bg-slate-500/10" />
-                  <span className="text-xs text-slate-300">Data Store</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-0.5 bg-cyan-500 rounded" />
-                  <span className="text-xs text-slate-300">Active Data Flow</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-0.5 bg-slate-600 rounded border-dashed" style={{ borderTop: '1px dashed #475569', height: 0 }} />
-                  <span className="text-xs text-slate-300">Inactive Flow</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Canvas Area */}
-          <div className="flex-1 relative overflow-hidden">
+        {/* Main Content - Full width canvas */}
+        <div className="flex-1 relative overflow-hidden">
             {/* Step indicator overlay */}
             {selectedRole && (
               <motion.div
@@ -236,7 +170,7 @@ function App() {
                 className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20"
               >
                 <div className="px-4 py-2 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-sm text-slate-300">
-                  🔐 Click the <span className="text-cyan-400 font-semibold">Authentication</span> node to login
+                  Click the <span className="text-cyan-400 font-semibold">AUTH</span> node to login
                 </div>
               </motion.div>
             )}
@@ -268,7 +202,6 @@ function App() {
                 onClose={() => setShowRolePopup(false)}
               />
             )}
-          </div>
         </div>
 
         {/* Footer */}

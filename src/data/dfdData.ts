@@ -33,7 +33,7 @@ export const nodes: DFDNode[] = [
     x: 80,
     y: 120,
     color: '#3b82f6',
-    icon: '🎓',
+    icon: 'STU',
     roles: ['student'],
     details: [
       'Authenticates via institutional ID (e.g., C24-001)',
@@ -50,7 +50,7 @@ export const nodes: DFDNode[] = [
     x: 80,
     y: 340,
     color: '#8b5cf6',
-    icon: '👨‍🏫',
+    icon: 'FAC',
     roles: ['faculty'],
     details: [
       'Authenticates via faculty credentials',
@@ -67,7 +67,7 @@ export const nodes: DFDNode[] = [
     x: 80,
     y: 560,
     color: '#ef4444',
-    icon: '🛡️',
+    icon: 'HR',
     roles: ['hr_qa'],
     details: [
       'Full system administration access',
@@ -84,7 +84,7 @@ export const nodes: DFDNode[] = [
     x: 80,
     y: 780,
     color: '#f59e0b',
-    icon: '🏛️',
+    icon: 'DEAN',
     roles: ['dean'],
     details: [
       'Authenticates via department ID (e.g., M001)',
@@ -103,7 +103,7 @@ export const nodes: DFDNode[] = [
     x: 340,
     y: 440,
     color: '#06b6d4',
-    icon: '🔐',
+    icon: 'AUTH',
     roles: ['student', 'hr_qa', 'faculty', 'dean'],
     details: [
       'Argon2id password hashing',
@@ -121,7 +121,7 @@ export const nodes: DFDNode[] = [
     x: 340,
     y: 120,
     color: '#3b82f6',
-    icon: '📝',
+    icon: 'EVAL',
     roles: ['student'],
     details: [
       'Step 1: Select Program',
@@ -139,7 +139,7 @@ export const nodes: DFDNode[] = [
     x: 560,
     y: 120,
     color: '#ec4899',
-    icon: '🔒',
+    icon: 'PII',
     roles: ['student', 'hr_qa'],
     details: [
       'Regex-based PII detection',
@@ -157,7 +157,7 @@ export const nodes: DFDNode[] = [
     x: 560,
     y: 560,
     color: '#ef4444',
-    icon: '⚙️',
+    icon: 'ADM',
     roles: ['hr_qa'],
     details: [
       'Manage academic terms',
@@ -176,7 +176,7 @@ export const nodes: DFDNode[] = [
     x: 780,
     y: 340,
     color: '#10b981',
-    icon: '✅',
+    icon: 'REL',
     roles: ['hr_qa', 'faculty', 'dean'],
     details: [
       'HR/QA reviews all submissions',
@@ -195,7 +195,7 @@ export const nodes: DFDNode[] = [
     x: 780,
     y: 560,
     color: '#8b5cf6',
-    icon: '📊',
+    icon: 'DASH',
     roles: ['faculty'],
     details: [
       'View personal evaluation results',
@@ -213,7 +213,7 @@ export const nodes: DFDNode[] = [
     x: 780,
     y: 780,
     color: '#f59e0b',
-    icon: '📋',
+    icon: 'OVRS',
     roles: ['dean'],
     details: [
       'Department aggregate reviews',
@@ -232,7 +232,7 @@ export const nodes: DFDNode[] = [
     x: 1000,
     y: 440,
     color: '#14b8a6',
-    icon: '🧠',
+    icon: 'TNA',
     roles: ['hr_qa', 'faculty', 'dean'],
     details: [
       'Deterministic individual insights',
@@ -250,7 +250,7 @@ export const nodes: DFDNode[] = [
     x: 1000,
     y: 680,
     color: '#6366f1',
-    icon: '📜',
+    icon: 'AUD',
     roles: ['hr_qa'],
     details: [
       'SHA-256 hash-chained entries',
@@ -270,7 +270,7 @@ export const nodes: DFDNode[] = [
     x: 560,
     y: 340,
     color: '#64748b',
-    icon: '🗄️',
+    icon: 'DB',
     roles: ['student', 'hr_qa', 'faculty', 'dean'],
     details: [
       'PostgreSQL 16 relational database',
@@ -288,7 +288,7 @@ export const nodes: DFDNode[] = [
     x: 1200,
     y: 680,
     color: '#475569',
-    icon: '💾',
+    icon: 'LOG',
     roles: ['hr_qa'],
     details: [
       'Append-only table',
@@ -306,7 +306,7 @@ export const nodes: DFDNode[] = [
     x: 340,
     y: 680,
     color: '#475569',
-    icon: '🔑',
+    icon: 'SES',
     roles: ['student', 'hr_qa', 'faculty', 'dean'],
     details: [
       'SHA-256 of opaque tokens stored',
@@ -324,7 +324,7 @@ export const nodes: DFDNode[] = [
     x: 1200,
     y: 340,
     color: '#0ea5e9',
-    icon: '📄',
+    icon: 'RPT',
     roles: ['hr_qa', 'dean', 'faculty'],
     details: [
       'PDF receipt generation (server-side)',

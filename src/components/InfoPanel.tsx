@@ -120,7 +120,7 @@ export default function InfoPanel({
             className="space-y-3"
           >
             <div className="flex items-center gap-2">
-              <span className="text-xl">{selectedNode.icon}</span>
+              <span className="text-sm font-bold px-2 py-1 rounded" style={{ color: selectedNode.color, backgroundColor: `${selectedNode.color}20` }}>{selectedNode.icon}</span>
               <div>
                 <div className="font-bold text-white text-sm">{selectedNode.label}</div>
                 <div className="text-xs text-slate-400">{selectedNode.description}</div>

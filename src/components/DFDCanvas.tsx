@@ -356,10 +356,10 @@ export default function DFDCanvas({
             ? 0.9
             : 1;
 
-          // Font sizes per tier - much larger base sizes for readability
-          const iconSize = isDimmed ? 14 : isCurrent ? 28 : 20;
-          const labelSize = isDimmed ? 9 : isCurrent ? 18 : 14;
-          const typeSize = isDimmed ? 6 : isCurrent ? 10 : 8;
+          // Font sizes per tier - larger base sizes for readability
+          const iconSize = isDimmed ? 16 : isCurrent ? 32 : 24;
+          const labelSize = isDimmed ? 11 : isCurrent ? 20 : 16;
+          const typeSize = isDimmed ? 7 : isCurrent ? 11 : 9;
 
           // Anchor point for scaling (center of the node)
           const cx = node.x + NODE_WIDTH / 2;
@@ -487,13 +487,15 @@ export default function DFDCanvas({
                 />
               )}
 
-              {/* Icon - counter-scaled for zoom, sized by tier */}
+              {/* Icon - text abbreviation, sized by tier */}
               <text
                 x={cx}
                 y={node.y + 24}
                 textAnchor="middle"
                 className="pointer-events-none select-none"
                 fontSize={iconSize * zoomScale}
+                fontWeight="700"
+                fill={isAuthEntry ? '#06b6d4' : isCurrent ? 'white' : node.color}
                 transform={`translate(${cx}, ${node.y + 24}) scale(${zoomScale}) translate(${-cx}, ${-node.y - 24})`}
               >
                 {node.icon}
