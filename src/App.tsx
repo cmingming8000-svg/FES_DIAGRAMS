@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DFDCanvas from './components/DFDCanvas';
 import InfoPanel from './components/InfoPanel';
 import RolePopup from './components/RolePopup';
+import Legend from './components/Legend';
 import { nodes, flows, UserRole, roleDescriptions } from './data/dfdData';
 
 function App() {
@@ -198,7 +199,11 @@ function App() {
               }}
               onClose={() => setShowRolePopup(false)}
             />
-          )}        </div>
+          )}
+
+          {/* Legend */}
+          <Legend isVisible={true} />
+        </div>
 
         {/* Footer */}
         <footer className="flex-shrink-0 px-6 py-2 border-t border-white/5">

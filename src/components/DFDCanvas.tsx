@@ -20,8 +20,8 @@ interface DFDCanvasProps {
 }
 
 const NODE_WIDTH = 220;
-const NODE_HEIGHT = 120;
-const BASE_VIEWBOX_WIDTH = 2100;
+const NODE_HEIGHT = 140; // Increased to match circle diameter better
+const BASE_VIEWBOX_WIDTH = 2200; // Match initial viewBox width
 
 // Icon mapping
 const iconMap: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
@@ -99,9 +99,31 @@ export default function DFDCanvas({
   const isZoomedOutFar = rawZoomScale > 1.4;
   const isZoomedOutMedium = rawZoomScale > 1.1;
 
-  // Fixed scale for active nodes - no collision detection
-  // Auto-follow zoom will handle positioning
-  const maxSafeScale = 6.1;
+  // Calculate maximum safe scale to prevent node overlap
+  const calculateMaxSafeScale = () => {
+    let minDistance = Infinity;
+    
+    // Find minimum distance between any two nodes
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const node1 = nodes[i];
+        const node2 = nodes[j];
+        const dx = (node1.x + NODE_WIDTH / 2) - (node2.x + NODE_WIDTH / 2);
+        const dy = (node1.y + NODE_HEIGHT / 2) - (node2.y + NODE_HEIGHT / 2);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        minDistance = Math.min(minDistance, distance);
+      }
+    }
+    
+    // Calculate max scale: nodes should not exceed 95% of minimum distance
+    // Node diagonal at scale 1 is sqrt(220^2 + 120^2) = ~250
+    const nodeDiagonal = Math.sqrt(NODE_WIDTH * NODE_WIDTH + NODE_HEIGHT * NODE_HEIGHT);
+    const maxScale = (minDistance * 0.95) / nodeDiagonal;
+    
+    return Math.min(6.1, maxScale); // Cap at 6.1 even if more space available
+  };
+
+  const maxSafeScale = calculateMaxSafeScale();
 
   const getNodeCenter = (nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
@@ -583,7 +605,7 @@ export default function DFDCanvas({
               {/* Flow label on hover or when current - scaled with view (hide when zoomed out far) */}
               {!isZoomedOutFar && (isCurrent || isHovered) && (() => {
                 const labelX = (getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2;
-                const labelY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 + 35;
+                const labelY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 + 30;
                 const flowLabelSize = 18;
                 const descSize = 15;
                 const boxHeight = 60;
@@ -668,9 +690,9 @@ export default function DFDCanvas({
           const cy = node.y + NODE_HEIGHT / 2;
 
           // Combined scale: node tier scale × zoom counter-scale
-          // Current nodes can scale freely, others are capped
+          // Apply zoom compensation but cap at safe limits to prevent overlap
           const baseScale = nodeScale * zoomScale;
-          const totalScale = isCurrent ? baseScale : Math.min(baseScale, 1.0);
+          const totalScale = Math.min(baseScale, maxSafeScale);
 
           return (
             <g
@@ -687,7 +709,7 @@ export default function DFDCanvas({
               className="cursor-pointer"
               style={{
                 opacity: nodeOpacity,
-                transition: 'opacity 0.5s ease, transform 0.5s ease',
+                transition: 'opacity 0.8s ease-in-out, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
                 transformOrigin: `${cx}px ${cy}px`,
                 transform: `scale(${totalScale})`,
               }}
@@ -796,10 +818,12 @@ export default function DFDCanvas({
                 const IconComponent = iconMap[node.icon];
                 if (!IconComponent) return null;
                 const iconSizePx = 48;
+                // Center icon vertically in the node (account for label space)
+                const iconY = node.y + 35;
                 return (
                   <foreignObject
                     x={cx - iconSizePx / 2}
-                    y={node.y + 30 - iconSizePx / 2}
+                    y={iconY - iconSizePx / 2}
                     width={iconSizePx}
                     height={iconSizePx}
                     className="pointer-events-none select-none"
@@ -822,7 +846,7 @@ export default function DFDCanvas({
               {!isZoomedOutFar && (
                 <text
                   x={cx}
-                  y={node.y + 65}
+                  y={node.y + 75}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
                   fontSize={24}
@@ -840,7 +864,7 @@ export default function DFDCanvas({
               {!isZoomedOutMedium && (
                 <text
                   x={cx}
-                  y={node.y + 88}
+                  y={node.y + 98}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
                   fontSize={16}

@@ -94,13 +94,13 @@ export const nodes: DFDNode[] = [
     ]
   },
 
-  // Column 2: Entry Processes (x=400)
+  // Column 2: Entry Processes (x=430)
   {
     id: 'auth',
     label: 'Authentication',
     description: 'Login & session management',
     type: 'process',
-    x: 400,
+    x: 430,
     y: 560,
     color: '#06b6d4',
     icon: 'Lock',
@@ -118,7 +118,7 @@ export const nodes: DFDNode[] = [
     label: 'Evaluation Submission',
     description: '3-step evaluation flow',
     type: 'process',
-    x: 400,
+    x: 430,
     y: 80,
     color: '#3b82f6',
     icon: 'FileEdit',
@@ -136,7 +136,7 @@ export const nodes: DFDNode[] = [
     label: 'Session Store',
     description: 'Active session management',
     type: 'datastore',
-    x: 400,
+    x: 430,
     y: 1040,
     color: '#475569',
     icon: 'Key',
@@ -150,13 +150,13 @@ export const nodes: DFDNode[] = [
     ]
   },
 
-  // Column 3: Core Processes (x=850)
+  // Column 3: Core Processes (x=780)
   {
     id: 'pii-redaction',
     label: 'PII Redaction',
     description: 'Automated privacy protection (RA 10173)',
     type: 'process',
-    x: 850,
+    x: 780,
     y: 80,
     color: '#ec4899',
     icon: 'EyeOff',
@@ -174,7 +174,7 @@ export const nodes: DFDNode[] = [
     label: 'Evaluations DB',
     description: 'PostgreSQL with row-level security',
     type: 'datastore',
-    x: 850,
+    x: 780,
     y: 400,
     color: '#64748b',
     icon: 'Database',
@@ -192,7 +192,7 @@ export const nodes: DFDNode[] = [
     label: 'Admin Dashboard',
     description: 'HR/QA system management',
     type: 'process',
-    x: 850,
+    x: 780,
     y: 720,
     color: '#ef4444',
     icon: 'Settings',
@@ -207,13 +207,13 @@ export const nodes: DFDNode[] = [
     ]
   },
 
-  // Column 4: Analysis & Oversight (x=1170)
+  // Column 4: Analysis & Oversight (x=1130)
   {
     id: 'verify-release',
     label: 'Verify & Release',
     description: 'HR/QA evaluation release (e-signed)',
     type: 'process',
-    x: 1170,
+    x: 1130,
     y: 240,
     color: '#10b981',
     icon: 'CheckCircle',
@@ -232,7 +232,7 @@ export const nodes: DFDNode[] = [
     label: 'Faculty Dashboard',
     description: 'Personal metrics & development',
     type: 'process',
-    x: 1170,
+    x: 1130,
     y: 560,
     color: '#8b5cf6',
     icon: 'BarChart3',
@@ -250,7 +250,7 @@ export const nodes: DFDNode[] = [
     label: 'Dean Oversight',
     description: 'Department analytics & sign-off',
     type: 'process',
-    x: 1170,
+    x: 1130,
     y: 880,
     color: '#f59e0b',
     icon: 'ClipboardCheck',
@@ -265,13 +265,13 @@ export const nodes: DFDNode[] = [
     ]
   },
 
-  // Column 5: Services & Reports (x=1490)
+  // Column 5: Services & Reports (x=1480)
   {
     id: 'tna-engine',
     label: 'TNA Engine',
     description: 'Training Needs Analysis',
     type: 'process',
-    x: 1490,
+    x: 1480,
     y: 240,
     color: '#14b8a6',
     icon: 'Brain',
@@ -289,7 +289,7 @@ export const nodes: DFDNode[] = [
     label: 'Audit Service',
     description: 'Append-only audit trail',
     type: 'process',
-    x: 1490,
+    x: 1480,
     y: 560,
     color: '#6366f1',
     icon: 'FileText',
@@ -307,7 +307,7 @@ export const nodes: DFDNode[] = [
     label: 'Report Generator',
     description: 'PDF & Excel export',
     type: 'process',
-    x: 1490,
+    x: 1480,
     y: 880,
     color: '#0ea5e9',
     icon: 'FileOutput',
@@ -321,13 +321,13 @@ export const nodes: DFDNode[] = [
     ]
   },
 
-  // Column 6: Storage (x=1810)
+  // Column 6: Storage (x=1830)
   {
     id: 'audit-db',
     label: 'Audit Log',
     description: 'Immutable audit trail storage',
     type: 'datastore',
-    x: 1810,
+    x: 1830,
     y: 560,
     color: '#475569',
     icon: 'HardDrive',
