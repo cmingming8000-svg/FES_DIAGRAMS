@@ -24,14 +24,14 @@ export interface DFDFlow {
 }
 
 export const nodes: DFDNode[] = [
-  // External Entities (Column 1: x=80)
+  // External Entities (Left side - User roles)
   {
     id: 'student-user',
     label: 'Student',
     description: 'Enrolled student who evaluates faculty',
     type: 'external',
-    x: 80,
-    y: 80,
+    x: 50.71290767209865,
+    y: 289.83686869429334,
     color: '#3b82f6',
     icon: 'GraduationCap',
     roles: ['student'],
@@ -47,8 +47,8 @@ export const nodes: DFDNode[] = [
     label: 'Faculty',
     description: 'Teaching staff being evaluated',
     type: 'external',
-    x: 80,
-    y: 400,
+    x: 33.21406329546679,
+    y: 402.5828877005347,
     color: '#8b5cf6',
     icon: 'UserCog',
     roles: ['faculty'],
@@ -64,8 +64,8 @@ export const nodes: DFDNode[] = [
     label: 'HR / QA',
     description: 'System administrator & quality assurance',
     type: 'external',
-    x: 80,
-    y: 720,
+    x: 52.58795986817597,
+    y: 546.8836231952766,
     color: '#ef4444',
     icon: 'Shield',
     roles: ['hr_qa'],
@@ -81,8 +81,8 @@ export const nodes: DFDNode[] = [
     label: 'Dean / Program Head',
     description: 'Department oversight authority',
     type: 'external',
-    x: 80,
-    y: 1040,
+    x: 164.76719338270482,
+    y: 841.4319410646298,
     color: '#f59e0b',
     icon: 'Building2',
     roles: ['dean'],
@@ -94,13 +94,13 @@ export const nodes: DFDNode[] = [
     ]
   },
 
-  // Column 2: Entry Processes (x=650)
+  // Entry Processes (Center-left - Authentication & Sessions)
   {
     id: 'auth',
     label: 'Authentication',
     description: 'Login & session management',
     type: 'process',
-    x: 650,
+    x: 649.1735559341639,
     y: 560,
     color: '#06b6d4',
     icon: 'Lock',
@@ -118,8 +118,8 @@ export const nodes: DFDNode[] = [
     label: 'Evaluation Submission',
     description: '3-step evaluation flow',
     type: 'process',
-    x: 650,
-    y: 80,
+    x: 650.6610824445145,
+    y: 256.2820855614973,
     color: '#3b82f6',
     icon: 'FileEdit',
     roles: ['student'],
@@ -136,8 +136,8 @@ export const nodes: DFDNode[] = [
     label: 'Session Store',
     description: 'Active session management',
     type: 'datastore',
-    x: 650,
-    y: 1040,
+    x: 649.203818395326,
+    y: 851.2852763765486,
     color: '#475569',
     icon: 'Key',
     roles: ['student', 'hr_qa', 'faculty', 'dean'],
@@ -150,14 +150,14 @@ export const nodes: DFDNode[] = [
     ]
   },
 
-  // Column 3: Core Processes (x=1200)
+  // Core Processes (Center - PII Redaction, Evaluations DB, Admin Dashboard)
   {
     id: 'pii-redaction',
     label: 'PII Redaction',
     description: 'Automated privacy protection (RA 10173)',
     type: 'process',
-    x: 1200,
-    y: 80,
+    x: 1297.5446539082561,
+    y: 58.60551059509855,
     color: '#ec4899',
     icon: 'EyeOff',
     roles: ['student', 'hr_qa'],
@@ -174,8 +174,8 @@ export const nodes: DFDNode[] = [
     label: 'Evaluations DB',
     description: 'PostgreSQL with row-level security',
     type: 'datastore',
-    x: 1200,
-    y: 400,
+    x: 1202.4923398987146,
+    y: 330.6728015128525,
     color: '#64748b',
     icon: 'Database',
     roles: ['student', 'hr_qa', 'faculty', 'dean'],
@@ -192,8 +192,8 @@ export const nodes: DFDNode[] = [
     label: 'Admin Dashboard',
     description: 'HR/QA system management',
     type: 'process',
-    x: 1200,
-    y: 720,
+    x: 1306.3373203062952,
+    y: 725.8114973262033,
     color: '#ef4444',
     icon: 'Settings',
     roles: ['hr_qa'],
@@ -207,14 +207,14 @@ export const nodes: DFDNode[] = [
     ]
   },
 
-  // Column 4: Analysis & Oversight (x=1550)
+  // Analysis & Oversight (Center-right - Verify & Release, Faculty Dashboard, Dean Oversight)
   {
     id: 'verify-release',
     label: 'Verify & Release',
     description: 'HR/QA evaluation release (e-signed)',
     type: 'process',
-    x: 1550,
-    y: 240,
+    x: 2125.497769048424,
+    y: 221.18386186712087,
     color: '#10b981',
     icon: 'CheckCircle',
     roles: ['hr_qa', 'faculty', 'dean'],
@@ -250,8 +250,8 @@ export const nodes: DFDNode[] = [
     label: 'Dean Oversight',
     description: 'Department analytics & sign-off',
     type: 'process',
-    x: 1550,
-    y: 880,
+    x: 1450.4718671315668,
+    y: 779.913101604278,
     color: '#f59e0b',
     icon: 'ClipboardCheck',
     roles: ['dean'],
@@ -265,7 +265,7 @@ export const nodes: DFDNode[] = [
     ]
   },
 
-  // Column 5: Services & Reports (x=1900)
+  // Services & Reports (Right side - TNA Engine, Audit Service, Reports)
   {
     id: 'tna-engine',
     label: 'TNA Engine',
@@ -307,8 +307,8 @@ export const nodes: DFDNode[] = [
     label: 'Report Generator',
     description: 'PDF & Excel export',
     type: 'process',
-    x: 1900,
-    y: 880,
+    x: 1715.0975795068036,
+    y: -77.5772670572704,
     color: '#0ea5e9',
     icon: 'FileOutput',
     roles: ['hr_qa', 'dean', 'faculty'],
@@ -321,7 +321,7 @@ export const nodes: DFDNode[] = [
     ]
   },
 
-  // Column 6: Storage (x=2250)
+  // Storage (Far right - Audit Log)
   {
     id: 'audit-db',
     label: 'Audit Log',
