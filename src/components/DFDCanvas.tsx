@@ -34,9 +34,11 @@ export default function DFDCanvas({
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredFlow, setHoveredFlow] = useState<string | null>(null);
 
-  // Calculate zoom scale for text elements (clamped to keep labels readable)
-  const rawZoomScale = viewBox.width / BASE_VIEWBOX_WIDTH;
-  const zoomScale = Math.max(0.5, Math.min(2.5, rawZoomScale));
+  // Calculate zoom scale for text elements - INVERSE of zoom so text stays readable
+  // When zoomed in (small viewBox), text shrinks slightly but stays readable
+  // When zoomed out (large viewBox), text grows significantly to compensate
+  const rawZoomScale = BASE_VIEWBOX_WIDTH / viewBox.width;
+  const zoomScale = Math.max(0.6, Math.min(4.5, rawZoomScale));
 
   const getNodeCenter = (nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
@@ -161,7 +163,7 @@ export default function DFDCanvas({
           +
         </button>
         <div className="px-2 py-0.5 rounded text-[10px] text-slate-400 bg-slate-800/60 backdrop-blur border border-white/5 font-mono">
-          {Math.round((1 / rawZoomScale) * 100)}%
+          {Math.round(rawZoomScale * 100)}%
         </div>
         <button
           onClick={zoomOut}
@@ -287,25 +289,30 @@ export default function DFDCanvas({
               {(isCurrent || isHovered) && (() => {
                 const labelX = (getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2;
                 const labelY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 - 8;
+                const flowLabelSize = 11 * zoomScale;
+                const padding = 8 * zoomScale;
+                const boxHeight = 20 * zoomScale;
+                // Estimate text width based on character count
+                const estimatedWidth = Math.max(80, flow.label.length * 6) * zoomScale;
                 return (
                   <g>
                     <rect
-                      x={labelX - 50 * zoomScale}
-                      y={labelY - 12 * zoomScale}
-                      width={100 * zoomScale}
-                      height={16 * zoomScale}
-                      rx={4 * zoomScale}
-                      fill="rgba(15,23,42,0.9)"
-                      stroke={isCurrent ? '#22d3ee44' : '#47556944'}
-                      strokeWidth={0.5 * zoomScale}
+                      x={labelX - estimatedWidth / 2}
+                      y={labelY - boxHeight / 2 - 2 * zoomScale}
+                      width={estimatedWidth}
+                      height={boxHeight}
+                      rx={5 * zoomScale}
+                      fill="rgba(15,23,42,0.95)"
+                      stroke={isCurrent ? '#22d3ee55' : '#47556955'}
+                      strokeWidth={1 * zoomScale}
                     />
                     <text
                       x={labelX}
-                      y={labelY}
+                      y={labelY + flowLabelSize * 0.35}
                       textAnchor="middle"
-                      className="font-medium pointer-events-none"
-                      fontSize={8 * zoomScale}
-                      fill={isCurrent ? '#67e8f9' : '#94a3b8'}
+                      className="font-semibold pointer-events-none"
+                      fontSize={flowLabelSize}
+                      fill={isCurrent ? '#67e8f9' : '#cbd5e1'}
                     >
                       {flow.label}
                     </text>
@@ -344,10 +351,10 @@ export default function DFDCanvas({
             ? 0.9
             : 1;
 
-          // Font sizes per tier
-          const iconSize = isDimmed ? 10 : isCurrent ? 22 : 16;
-          const labelSize = isDimmed ? 6 : isCurrent ? 14 : 10;
-          const typeSize = isDimmed ? 4 : isCurrent ? 8 : 6;
+          // Font sizes per tier - much larger base sizes for readability
+          const iconSize = isDimmed ? 14 : isCurrent ? 28 : 20;
+          const labelSize = isDimmed ? 9 : isCurrent ? 18 : 14;
+          const typeSize = isDimmed ? 6 : isCurrent ? 10 : 8;
 
           // Anchor point for scaling (center of the node)
           const cx = node.x + NODE_WIDTH / 2;
