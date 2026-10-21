@@ -31,7 +31,7 @@ export default function RolePopup({ onSelectRole, onClose, position }: RolePopup
           transform: 'translate(-50%, -100%)',
         }}
       >
-        <div className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl min-w-[320px]">
+        <div className="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl min-w-[320px] select-none">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="text-sm font-bold text-white">Choose Login Role</h3>

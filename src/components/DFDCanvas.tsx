@@ -195,8 +195,8 @@ export default function DFDCanvas({
       <svg
         ref={svgRef}
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
-        className="w-full h-full cursor-grab active:cursor-grabbing"
-        style={{ minHeight: '500px' }}
+        className="w-full h-full cursor-grab active:cursor-grabbing select-none"
+        style={{ minHeight: '500px', userSelect: 'none' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
