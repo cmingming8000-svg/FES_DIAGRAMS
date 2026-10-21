@@ -99,31 +99,9 @@ export default function DFDCanvas({
   const isZoomedOutFar = rawZoomScale > 1.4;
   const isZoomedOutMedium = rawZoomScale > 1.1;
 
-  // Calculate maximum safe scale to prevent node overlap
-  const calculateMaxSafeScale = () => {
-    let minDistance = Infinity;
-    
-    // Find minimum distance between any two nodes
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const node1 = nodes[i];
-        const node2 = nodes[j];
-        const dx = (node1.x + NODE_WIDTH / 2) - (node2.x + NODE_WIDTH / 2);
-        const dy = (node1.y + NODE_HEIGHT / 2) - (node2.y + NODE_HEIGHT / 2);
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        minDistance = Math.min(minDistance, distance);
-      }
-    }
-    
-    // Calculate max scale: nodes should not exceed 95% of minimum distance
-    // Node diagonal at scale 1 is sqrt(220^2 + 120^2) = ~250
-    const nodeDiagonal = Math.sqrt(NODE_WIDTH * NODE_WIDTH + NODE_HEIGHT * NODE_HEIGHT);
-    const maxScale = (minDistance * 0.95) / nodeDiagonal;
-    
-    return Math.min(6.1, maxScale); // Cap at 6.1 (5.3 * 1.15) even if more space available
-  };
-
-  const maxSafeScale = calculateMaxSafeScale();
+  // Fixed scale for active nodes - no collision detection
+  // Auto-follow zoom will handle positioning
+  const maxSafeScale = 6.1;
 
   const getNodeCenter = (nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
@@ -672,7 +650,7 @@ export default function DFDCanvas({
           const nodeScale = isDimmed
             ? 0.55
             : isCurrent
-            ? maxSafeScale
+            ? 1.5
             : isHighlighted
             ? 1.0
             : 1.0;
@@ -690,9 +668,9 @@ export default function DFDCanvas({
           const cy = node.y + NODE_HEIGHT / 2;
 
           // Combined scale: node tier scale × zoom counter-scale
-          // Apply zoom compensation but cap at safe limits to prevent overlap
+          // Current nodes can scale freely, others are capped
           const baseScale = nodeScale * zoomScale;
-          const totalScale = Math.min(baseScale, maxSafeScale);
+          const totalScale = isCurrent ? baseScale : Math.min(baseScale, 1.0);
 
           return (
             <g
