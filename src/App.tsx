@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DFDCanvas from './components/DFDCanvas';
 import ERDCanvas, { ERDCanvasHandle } from './components/ERDCanvas';
-import InfoPanel from './components/InfoPanel';
 import ERDInfoPanel from './components/ERDInfoPanel';
 import RolePopup from './components/RolePopup';
 import Legend from './components/Legend';
@@ -62,11 +61,6 @@ function App() {
     if (!selectedRole) return 0;
     return roleDescriptions[selectedRole].steps;
   }, [selectedRole]);
-
-  // Selected node data
-  const selectedNodeData = useMemo(() => {
-    return nodes.find((n) => n.id === selectedNode) || null;
-  }, [selectedNode]);
 
   // Selected entity data
   const selectedEntityData = useMemo(() => {
@@ -445,21 +439,7 @@ function App() {
               </>
             )}
 
-          {/* Info Panel - DFD Mode */}
-          {viewMode === 'dfd' && selectedRole && (
-            <div className="absolute top-4 right-4 z-30">
-              <InfoPanel
-                selectedNode={selectedNodeData}
-                currentStep={currentStep}
-                role={selectedRole}
-                flows={roleFlows}
-                allFlows={flows}
-                onNextStep={handleNextStep}
-                onPrevStep={handlePrevStep}
-                totalSteps={totalSteps}
-              />
-            </div>
-          )}
+
 
           {/* Info Panel - ERD Mode */}
           {viewMode === 'erd' && (

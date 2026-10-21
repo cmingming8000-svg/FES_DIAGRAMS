@@ -512,34 +512,6 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(function DFDC
 
   return (
     <div className="relative w-full h-full">
-      {/* Zoom controls */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col gap-1 items-center">
-        <button
-          onClick={zoomIn}
-          className="w-8 h-8 rounded-lg bg-slate-800/80 backdrop-blur border border-white/10 text-white text-sm hover:bg-slate-700 transition-colors flex items-center justify-center"
-          title="Zoom In"
-        >
-          +
-        </button>
-        <div className="px-2 py-0.5 rounded text-[10px] text-slate-400 bg-slate-800/60 backdrop-blur border border-white/5 font-mono">
-          {Math.round((BASE_VIEWBOX_WIDTH / viewBox.width) * 100)}%
-        </div>
-        <button
-          onClick={zoomOut}
-          className="w-8 h-8 rounded-lg bg-slate-800/80 backdrop-blur border border-white/10 text-white text-sm hover:bg-slate-700 transition-colors flex items-center justify-center"
-          title="Zoom Out"
-        >
-          −
-        </button>
-        <button
-          onClick={resetView}
-          className="w-8 h-8 rounded-lg bg-slate-800/80 backdrop-blur border border-white/10 text-white text-xs hover:bg-slate-700 transition-colors flex items-center justify-center mt-1"
-          title="Reset View"
-        >
-          ⟲
-        </button>
-      </div>
-
       {/* Tooltip for hovered node */}
       {hoveredNode && !selectedNode && (
         <div className="absolute top-4 left-4 z-20 px-3 py-2 rounded-lg bg-slate-800/90 backdrop-blur border border-white/10 text-xs text-white max-w-[200px]">
