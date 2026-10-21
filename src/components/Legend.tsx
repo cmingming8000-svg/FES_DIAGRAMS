@@ -1,20 +1,42 @@
 import { motion } from 'framer-motion';
 
 interface LegendProps {
-  isVisible: boolean;
+  isExpanded: boolean;
+  onToggle: () => void;
 }
 
-export default function Legend({ isVisible }: LegendProps) {
-  if (!isVisible) return null;
-
+export default function Legend({ isExpanded, onToggle }: LegendProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
-      className="fixed bottom-6 left-6 z-30 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl"
+      className="fixed bottom-6 left-6 z-30 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl"
     >
-      <h3 className="text-sm font-bold text-white mb-3">Legend</h3>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors rounded-xl"
+      >
+        <h3 className="text-sm font-bold text-white">Legend</h3>
+        <motion.span
+          animate={{ rotate: isExpanded ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="text-slate-400 text-xs"
+        >
+          ▼
+        </motion.span>
+      </button>
+      
+      <motion.div
+        initial={false}
+        animate={{
+          height: isExpanded ? 'auto' : 0,
+          opacity: isExpanded ? 1 : 0
+        }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
+        className="overflow-hidden"
+      >
+        <div className="px-4 pb-4">
       
       <div className="space-y-3 text-xs">
         {/* Node Types */}
@@ -85,6 +107,8 @@ export default function Legend({ isVisible }: LegendProps) {
           </div>
         </div>
       </div>
+        </div>
+      </motion.div>
     </motion.div>
   );
 }

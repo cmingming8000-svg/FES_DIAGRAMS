@@ -11,6 +11,7 @@ function App() {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [showRolePopup, setShowRolePopup] = useState(false);
+  const [legendExpanded, setLegendExpanded] = useState(true);
 
   // Get flows relevant to the selected role
   const roleFlows = useMemo(() => {
@@ -202,7 +203,7 @@ function App() {
           )}
 
           {/* Legend */}
-          <Legend isVisible={true} />
+          <Legend isExpanded={legendExpanded} onToggle={() => setLegendExpanded(!legendExpanded)} />
         </div>
 
         {/* Footer */}
