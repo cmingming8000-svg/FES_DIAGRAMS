@@ -1,10 +1,10 @@
-export type UserRole = 'student' | 'faculty' | 'hr_qa' | 'dean';
+export type UserRole = 'student' | 'hr_qa' | 'faculty' | 'dean';
 
 export interface DFDNode {
   id: string;
   label: string;
   description: string;
-  type: 'external' | 'process' | 'datastore';
+  type: 'external' | 'process' | 'datastore' | 'system';
   x: number;
   y: number;
   color: string;
@@ -25,162 +25,248 @@ export interface DFDFlow {
 }
 
 export const nodes: DFDNode[] = [
+  // External Entities (Left side - User roles)
   {
     id: 'student-user',
     label: 'Student',
     description: 'Enrolled student who evaluates faculty',
     type: 'external',
-    x: 50.71,
-    y: 289.84,
+    x: 50.71290767209865,
+    y: 289.83686869429334,
     color: '#3b82f6',
     icon: 'GraduationCap',
     roles: ['student'],
-    details: ['Authenticates via institutional ID', 'Submits evaluations', 'PII auto-redacted']
+    details: [
+      'Authenticates via institutional ID (e.g., C24-001)',
+      'Submits evaluations for enrolled courses',
+      'PII is auto-redacted before storage',
+      'Cannot view evaluation results'
+    ]
   },
   {
     id: 'faculty-user',
     label: 'Faculty',
     description: 'Teaching staff being evaluated',
     type: 'external',
-    x: 33.21,
-    y: 402.58,
+    x: 33.21406329546679,
+    y: 402.5828877005347,
     color: '#8b5cf6',
     icon: 'UserCog',
     roles: ['faculty'],
-    details: ['Authenticates via faculty credentials', 'Views evaluation metrics', 'Receives TNA insights']
+    details: [
+      'Authenticates via faculty credentials',
+      'Views personal evaluation metrics after release',
+      'Receives TNA-based development insights',
+      'E-signs acknowledgment of results'
+    ]
   },
   {
     id: 'hr-user',
     label: 'HR / QA',
-    description: 'System administrator',
+    description: 'System administrator & quality assurance',
     type: 'external',
-    x: 52.59,
-    y: 546.88,
+    x: 52.58795986817597,
+    y: 546.8836231952766,
     color: '#ef4444',
     icon: 'Shield',
     roles: ['hr_qa'],
-    details: ['Full system access', 'Manages evaluations', 'Verifies and releases']
+    details: [
+      'Full system administration access',
+      'Manages academic terms & criteria',
+      'Verifies and releases evaluations (e-signed)',
+      'Manages accounts, audit logs, and TNA analytics'
+    ]
   },
   {
     id: 'dean-user',
-    label: 'Dean',
-    description: 'Department oversight',
+    label: 'Dean / Program Head',
+    description: 'Department oversight authority',
     type: 'external',
-    x: 164.77,
-    y: 841.43,
+    x: 164.76719338270482,
+    y: 841.4319410646298,
     color: '#f59e0b',
     icon: 'Building2',
     roles: ['dean'],
-    details: ['Department analytics', 'Oversight sign-off', 'Aggregate reviews']
+    details: [
+      'Authenticates via department ID (e.g., M001)',
+      'Views departmental aggregate analytics',
+      'Drills down into individual faculty metrics',
+      'Provides oversight sign-off within 7 days'
+    ]
   },
+
+  // Entry Processes (Center-left - Authentication & Sessions)
   {
     id: 'auth',
     label: 'Authentication',
     description: 'Login & session management',
     type: 'process',
-    x: 649.17,
+    x: 649.1735559341639,
     y: 560,
     color: '#06b6d4',
     icon: 'Lock',
     roles: ['student', 'hr_qa', 'faculty', 'dean'],
-    details: ['Argon2id hashing', 'Session tokens', 'Brute-force protection']
+    details: [
+      'Argon2id password hashing',
+      'Opaque 256-bit session tokens',
+      '15-min idle timeout, 12-hr absolute lifetime',
+      'Brute-force lockout after 5 failures',
+      'CSRF protection via SameSite + custom headers'
+    ]
   },
   {
     id: 'eval-submit',
     label: 'Evaluation Submission',
     description: '3-step evaluation flow',
     type: 'process',
-    x: 650.66,
-    y: 256.28,
+    x: 650.6610824445145,
+    y: 256.2820855614973,
     color: '#3b82f6',
     icon: 'FileEdit',
     roles: ['student'],
-    details: ['Select Program', 'Select Subject', 'Select Professor']
+    details: [
+      'Step 1: Select Program',
+      'Step 2: Select Subject',
+      'Step 3: Select Professor',
+      'Rate on 4 domains (1-5 scale)',
+      'Submit feedback with PII redaction'
+    ]
   },
   {
     id: 'sessions-store',
     label: 'Session Store',
     description: 'Active session management',
     type: 'datastore',
-    x: 649.20,
-    y: 851.29,
+    x: 649.203818395326,
+    y: 851.2852763765486,
     color: '#475569',
     icon: 'Key',
     roles: ['student', 'hr_qa', 'faculty', 'dean'],
-    details: ['SHA-256 tokens', 'HttpOnly cookies', '15-min timeout']
+    details: [
+      'SHA-256 of opaque tokens stored',
+      'HttpOnly; Secure; SameSite=Strict cookies',
+      '__Host- prefix for cookie binding',
+      '15-min idle / 12-hr absolute timeout',
+      'In-memory rate limit counters'
+    ]
   },
+
+  // Core Processes (Center - PII Redaction, Evaluations DB, Admin Dashboard)
   {
     id: 'pii-redaction',
     label: 'PII Redaction',
-    description: 'Privacy protection',
+    description: 'Automated privacy protection (RA 10173)',
     type: 'process',
-    x: 1297.54,
-    y: 58.61,
+    x: 1297.5446539082561,
+    y: 58.60551059509855,
     color: '#ec4899',
     icon: 'EyeOff',
     roles: ['student', 'hr_qa'],
-    details: ['Regex detection', 'Client & server-side', 'RA 10173 compliant']
+    details: [
+      'Regex-based PII detection',
+      'Applied client-side AND server-side',
+      'Student identity hidden from faculty/dean',
+      'HR/QA retains verification visibility',
+      'Complies with RA 10173 (Data Privacy Act)'
+    ]
   },
   {
     id: 'evaluations-db',
     label: 'Evaluations DB',
-    description: 'PostgreSQL database',
+    description: 'PostgreSQL with row-level security',
     type: 'datastore',
-    x: 1202.49,
-    y: 330.67,
+    x: 1202.4923398987146,
+    y: 330.6728015128525,
     color: '#64748b',
     icon: 'Database',
     roles: ['student', 'hr_qa', 'faculty', 'dean'],
-    details: ['Row-level security', 'Per-transaction context', 'RLS policies']
+    details: [
+      'PostgreSQL 16 relational database',
+      'Row-level security policies',
+      'Per-transaction security context',
+      'Foreign keys & indexes',
+      'RLS on evaluations & evaluation_ratings'
+    ]
   },
   {
     id: 'admin-dashboard',
     label: 'Admin Dashboard',
-    description: 'HR/QA management',
+    description: 'HR/QA system management',
     type: 'process',
-    x: 1306.34,
-    y: 725.81,
+    x: 1306.3373203062952,
+    y: 725.8114973262033,
     color: '#ef4444',
     icon: 'Settings',
     roles: ['hr_qa'],
-    details: ['Manage terms', 'Configure criteria', 'Monitor audit']
+    details: [
+      'Manage academic terms',
+      'Configure evaluation criteria',
+      'Manage faculty data & accounts',
+      'View TNA analytics',
+      'Monitor audit trail',
+      'Activate/deactivate/unlock accounts'
+    ]
   },
+
+  // Analysis & Oversight (Center-right - Verify & Release, Faculty Dashboard, Dean Oversight)
   {
     id: 'verify-release',
     label: 'Verify & Release',
-    description: 'HR/QA release',
+    description: 'HR/QA evaluation release (e-signed)',
     type: 'process',
-    x: 2125.50,
-    y: 221.18,
+    x: 2125.497769048424,
+    y: 221.18386186712087,
     color: '#10b981',
     icon: 'CheckCircle',
     roles: ['hr_qa', 'faculty', 'dean'],
-    details: ['E-signs release', 'RA 8792 compliant', 'SHA-256 hash']
+    details: [
+      'HR/QA reviews all submissions',
+      'E-signs release (RA 8792 compliant)',
+      'Tracking ID: FES-[timestamp]-[hash]',
+      'Immediately grants faculty access',
+      'Closes term to new submissions',
+      'SHA-256 document hash stored'
+    ]
   },
   {
     id: 'faculty-dashboard',
     label: 'Faculty Dashboard',
-    description: 'Personal metrics',
+    description: 'Personal metrics & development',
     type: 'process',
     x: 1550,
     y: 560,
     color: '#8b5cf6',
     icon: 'BarChart3',
     roles: ['faculty'],
-    details: ['View results', 'TNA insights', 'E-sign acknowledgment']
+    details: [
+      'View personal evaluation results',
+      'Cross-department aggregates (server-computed)',
+      'TNA-based development insights',
+      'E-sign acknowledgment',
+      'Access after HR/QA release only'
+    ]
   },
   {
     id: 'dean-oversight',
     label: 'Dean Oversight',
-    description: 'Department analytics',
+    description: 'Department analytics & sign-off',
     type: 'process',
-    x: 1450.47,
-    y: 779.91,
+    x: 1450.4718671315668,
+    y: 779.913101604278,
     color: '#f59e0b',
     icon: 'ClipboardCheck',
     roles: ['dean'],
-    details: ['Aggregate reviews', 'Drill-down metrics', '7-day sign-off']
+    details: [
+      'Department aggregate reviews',
+      'Drill-down into faculty metrics',
+      'Cross-department comparisons',
+      'Oversight sign-off (due within 7 days)',
+      'Does NOT gate faculty access',
+      'Access after HR/QA release'
+    ]
   },
+
+  // Services & Reports (Right side - TNA Engine, Audit Service, Reports)
   {
     id: 'tna-engine',
     label: 'TNA Engine',
@@ -191,7 +277,13 @@ export const nodes: DFDNode[] = [
     color: '#14b8a6',
     icon: 'Brain',
     roles: ['hr_qa', 'faculty', 'dean'],
-    details: ['Deterministic insights', 'Template-based', 'Cached snapshots']
+    details: [
+      'Deterministic individual insights',
+      'Pre-approved template-based',
+      'Department/institution analysis',
+      'Cached in tna_snapshots',
+      'Keyed by term + input fingerprint'
+    ]
   },
   {
     id: 'audit-service',
@@ -203,66 +295,332 @@ export const nodes: DFDNode[] = [
     color: '#6366f1',
     icon: 'FileText',
     roles: ['hr_qa'],
-    details: ['SHA-256 hash chain', 'Append-only', 'Tamper detection']
+    details: [
+      'SHA-256 hash-chained entries',
+      'Append-only (UPDATE/DELETE blocked)',
+      'Runtime role: SELECT/INSERT only',
+      'HR/QA can verify chain integrity',
+      'Detects tampering attempts'
+    ]
   },
   {
     id: 'reports',
     label: 'Report Generator',
     description: 'PDF & Excel export',
     type: 'process',
-    x: 1715.10,
-    y: -77.58,
+    x: 1715.0975795068036,
+    y: -77.5772670572704,
     color: '#0ea5e9',
     icon: 'FileOutput',
     roles: ['hr_qa', 'dean', 'faculty'],
-    details: ['PDF generation', 'Excel export', 'Verification receipts']
+    details: [
+      'PDF receipt generation (server-side)',
+      'Excel export via exceljs',
+      'Admin/Dean/Faculty print reports',
+      'Agreement verification receipts',
+      'Tracking ID verification endpoint'
+    ]
   },
+
+  // Storage (Far right - Audit Log)
   {
     id: 'audit-db',
     label: 'Audit Log',
-    description: 'Immutable storage',
+    description: 'Immutable audit trail storage',
     type: 'datastore',
     x: 2250,
     y: 560,
     color: '#475569',
     icon: 'HardDrive',
     roles: ['hr_qa'],
-    details: ['Append-only table', 'Hash chain', 'WORM backups']
+    details: [
+      'Append-only table',
+      'Triggers block UPDATE/DELETE/TRUNCATE',
+      'SHA-256 hash chain',
+      'Off-host log shipping recommended',
+      'WORM backups complement security'
+    ]
   }
 ];
 
 export const flows: DFDFlow[] = [
-  { id: 'f1', from: 'student-user', to: 'auth', label: 'Login credentials', description: 'Student authenticates', roles: ['student'], stepOrder: { student: 1, hr_qa: null, faculty: null, dean: null } },
-  { id: 'f2', from: 'auth', to: 'sessions-store', label: 'Session token', description: 'Session created', roles: ['student', 'hr_qa', 'faculty', 'dean'], stepOrder: { student: 2, hr_qa: 2, faculty: 2, dean: 2 }, hasReturnFlow: true },
-  { id: 'f3', from: 'auth', to: 'eval-submit', label: 'Authenticated session', description: 'Access granted', roles: ['student'], stepOrder: { student: 3, hr_qa: null, faculty: null, dean: null } },
-  { id: 'f4', from: 'eval-submit', to: 'pii-redaction', label: 'Raw evaluation', description: 'PII scanning', roles: ['student'], stepOrder: { student: 4, hr_qa: null, faculty: null, dean: null } },
-  { id: 'f5', from: 'pii-redaction', to: 'evaluations-db', label: 'Redacted evaluation', description: 'Stored', roles: ['student', 'hr_qa'], stepOrder: { student: 5, hr_qa: null, faculty: null, dean: null } },
-  { id: 'f6', from: 'evaluations-db', to: 'audit-db', label: 'Audit entry', description: 'Logged', roles: ['hr_qa'], stepOrder: { student: null, hr_qa: null, faculty: null, dean: null } },
-  { id: 'f7', from: 'hr-user', to: 'auth', label: 'Admin credentials', description: 'HR/QA authenticates', roles: ['hr_qa'], stepOrder: { student: null, hr_qa: 1, faculty: null, dean: null } },
-  { id: 'f8', from: 'auth', to: 'admin-dashboard', label: 'Full access', description: 'Dashboard access', roles: ['hr_qa'], stepOrder: { student: null, hr_qa: 3, faculty: null, dean: null } },
-  { id: 'f9', from: 'admin-dashboard', to: 'evaluations-db', label: 'Query evaluations', description: 'Query data', roles: ['hr_qa'], stepOrder: { student: null, hr_qa: 4, faculty: null, dean: null }, hasReturnFlow: true },
-  { id: 'f10', from: 'admin-dashboard', to: 'verify-release', label: 'Review & e-sign', description: 'Release', roles: ['hr_qa'], stepOrder: { student: null, hr_qa: 5, faculty: null, dean: null } },
-  { id: 'f11', from: 'verify-release', to: 'evaluations-db', label: 'Release update', description: 'Status update', roles: ['hr_qa', 'faculty', 'dean'], stepOrder: { student: null, hr_qa: 6, faculty: null, dean: null } },
-  { id: 'f12', from: 'admin-dashboard', to: 'audit-service', label: 'Verify audit', description: 'Chain verification', roles: ['hr_qa'], stepOrder: { student: null, hr_qa: 7, faculty: null, dean: null } },
-  { id: 'f13', from: 'audit-service', to: 'audit-db', label: 'Read audit log', description: 'Read entries', roles: ['hr_qa'], stepOrder: { student: null, hr_qa: null, faculty: null, dean: null }, hasReturnFlow: true },
-  { id: 'f14', from: 'faculty-user', to: 'auth', label: 'Faculty credentials', description: 'Faculty authenticates', roles: ['faculty'], stepOrder: { student: null, hr_qa: null, faculty: 1, dean: null } },
-  { id: 'f15', from: 'auth', to: 'faculty-dashboard', label: 'Scoped data', description: 'Role-scoped data', roles: ['faculty'], stepOrder: { student: null, hr_qa: null, faculty: 2, dean: null }, hasReturnFlow: true },
-  { id: 'f16', from: 'verify-release', to: 'faculty-dashboard', label: 'Released results', description: 'View results', roles: ['faculty'], stepOrder: { student: null, hr_qa: null, faculty: 3, dean: null } },
-  { id: 'f17', from: 'faculty-dashboard', to: 'tna-engine', label: 'Request insights', description: 'TNA request', roles: ['faculty'], stepOrder: { student: null, hr_qa: null, faculty: 4, dean: null }, hasReturnFlow: true },
-  { id: 'f18', from: 'dean-user', to: 'auth', label: 'Dean credentials', description: 'Dean authenticates', roles: ['dean'], stepOrder: { student: null, hr_qa: null, faculty: null, dean: 1 } },
-  { id: 'f19', from: 'auth', to: 'dean-oversight', label: 'Department scope', description: 'Department data', roles: ['dean'], stepOrder: { student: null, hr_qa: null, faculty: null, dean: 2 } },
-  { id: 'f20', from: 'verify-release', to: 'dean-oversight', label: 'Released aggregates', description: 'Aggregates', roles: ['dean'], stepOrder: { student: null, hr_qa: null, faculty: null, dean: 3 } },
-  { id: 'f21', from: 'dean-oversight', to: 'tna-engine', label: 'Department analysis', description: 'TNA analysis', roles: ['dean'], stepOrder: { student: null, hr_qa: null, faculty: null, dean: 4 }, hasReturnFlow: true },
-  { id: 'f22', from: 'dean-oversight', to: 'verify-release', label: 'Oversight sign-off', description: 'E-sign', roles: ['dean'], stepOrder: { student: null, hr_qa: null, faculty: null, dean: 5 } },
-  { id: 'f23', from: 'tna-engine', to: 'reports', label: 'Analytics data', description: 'Feed reports', roles: ['hr_qa', 'dean', 'faculty'], stepOrder: { student: null, hr_qa: 8, faculty: 5, dean: 6 }, hasReturnFlow: true },
-  { id: 'f24', from: 'reports', to: 'faculty-user', label: 'PDF/Excel reports', description: 'Faculty reports', roles: ['faculty'], stepOrder: { student: null, hr_qa: null, faculty: 6, dean: null }, hasReturnFlow: true },
-  { id: 'f25', from: 'reports', to: 'dean-user', label: 'Department reports', description: 'Dean reports', roles: ['dean'], stepOrder: { student: null, hr_qa: null, faculty: null, dean: 7 }, hasReturnFlow: true },
-  { id: 'f26', from: 'reports', to: 'hr-user', label: 'System reports', description: 'HR/QA reports', roles: ['hr_qa'], stepOrder: { student: null, hr_qa: 9, faculty: null, dean: null }, hasReturnFlow: true }
+  // Student flows
+  {
+    id: 'f1',
+    from: 'student-user',
+    to: 'auth',
+    label: 'Login credentials',
+    description: 'Student authenticates with institutional ID and password',
+    roles: ['student'],
+    stepOrder: { student: 1, hr_qa: null, faculty: null, dean: null }
+  },
+  {
+    id: 'f2',
+    from: 'auth',
+    to: 'sessions-store',
+    label: 'Session token',
+    description: 'Server creates session and stores SHA-256 hash of opaque token',
+    roles: ['student', 'hr_qa', 'faculty', 'dean'],
+    stepOrder: { student: 2, hr_qa: 2, faculty: 3, dean: 3 },
+    hasReturnFlow: true
+  },
+  {
+    id: 'f3',
+    from: 'auth',
+    to: 'eval-submit',
+    label: 'Authenticated session',
+    description: 'Student gains access to evaluation submission flow',
+    roles: ['student'],
+    stepOrder: { student: 3, hr_qa: null, faculty: null, dean: null }
+  },
+  {
+    id: 'f4',
+    from: 'eval-submit',
+    to: 'pii-redaction',
+    label: 'Raw evaluation data',
+    description: 'Evaluation submitted with feedback text for PII scanning',
+    roles: ['student'],
+    stepOrder: { student: 4, hr_qa: null, faculty: null, dean: null }
+  },
+  {
+    id: 'f5',
+    from: 'pii-redaction',
+    to: 'evaluations-db',
+    label: 'Redacted evaluation',
+    description: 'PII-stripped evaluation stored with student ID (hidden from faculty/dean)',
+    roles: ['student', 'hr_qa'],
+    stepOrder: { student: 5, hr_qa: null, faculty: null, dean: null }
+  },
+  {
+    id: 'f6',
+    from: 'evaluations-db',
+    to: 'audit-db',
+    label: 'Audit entry',
+    description: 'Evaluation submission logged to immutable audit trail',
+    roles: ['hr_qa'],
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: null }
+  },
+
+  // HR/QA flows
+  {
+    id: 'f7',
+    from: 'hr-user',
+    to: 'auth',
+    label: 'Admin credentials',
+    description: 'HR/QA authenticates with admin credentials',
+    roles: ['hr_qa'],
+    stepOrder: { student: null, hr_qa: 1, faculty: null, dean: null }
+  },
+  {
+    id: 'f8',
+    from: 'auth',
+    to: 'admin-dashboard',
+    label: 'Full access',
+    description: 'HR/QA accesses complete admin dashboard with all tabs',
+    roles: ['hr_qa'],
+    stepOrder: { student: null, hr_qa: 3, faculty: null, dean: null }
+  },
+  {
+    id: 'f9',
+    from: 'admin-dashboard',
+    to: 'evaluations-db',
+    label: 'Query evaluations',
+    description: 'HR/QA queries all evaluations (sees student IDs for verification)',
+    roles: ['hr_qa'],
+    stepOrder: { student: null, hr_qa: 4, faculty: null, dean: null },
+    hasReturnFlow: true
+  },
+  {
+    id: 'f10',
+    from: 'admin-dashboard',
+    to: 'verify-release',
+    label: 'Review & e-sign',
+    description: 'HR/QA reviews evaluations and e-signs release (RA 8792)',
+    roles: ['hr_qa'],
+    stepOrder: { student: null, hr_qa: 5, faculty: null, dean: null }
+  },
+  {
+    id: 'f11',
+    from: 'verify-release',
+    to: 'evaluations-db',
+    label: 'Release status update',
+    description: 'Term marked as released; faculty access granted; submissions closed',
+    roles: ['hr_qa', 'faculty', 'dean'],
+    stepOrder: { student: null, hr_qa: 6, faculty: null, dean: null }
+  },
+  {
+    id: 'f12',
+    from: 'admin-dashboard',
+    to: 'audit-service',
+    label: 'Verify audit chain',
+    description: 'HR/QA verifies SHA-256 hash chain integrity',
+    roles: ['hr_qa'],
+    stepOrder: { student: null, hr_qa: 7, faculty: null, dean: null }
+  },
+  {
+    id: 'f13',
+    from: 'audit-service',
+    to: 'audit-db',
+    label: 'Read audit log',
+    description: 'Service reads append-only audit entries for verification',
+    roles: ['hr_qa'],
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: null },
+    hasReturnFlow: true
+  },
+
+  // Faculty flows
+  {
+    id: 'f14',
+    from: 'faculty-user',
+    to: 'auth',
+    label: 'Faculty credentials',
+    description: 'Faculty authenticates with faculty credentials',
+    roles: ['faculty'],
+    stepOrder: { student: null, hr_qa: null, faculty: 1, dean: null }
+  },
+  {
+    id: 'f15',
+    from: 'auth',
+    to: 'faculty-dashboard',
+    label: 'Scoped data',
+    description: 'Faculty receives role-scoped bootstrap data (own results only)',
+    roles: ['faculty'],
+    stepOrder: { student: null, hr_qa: null, faculty: 3, dean: null }
+  },
+  {
+    id: 'f16',
+    from: 'verify-release',
+    to: 'faculty-dashboard',
+    label: 'Released results',
+    description: 'After HR/QA release, faculty can view their evaluation results',
+    roles: ['faculty'],
+    stepOrder: { student: null, hr_qa: null, faculty: 4, dean: null }
+  },
+  {
+    id: 'f17',
+    from: 'faculty-dashboard',
+    to: 'tna-engine',
+    label: 'Request insights',
+    description: 'Faculty views TNA-based professional development recommendations',
+    roles: ['faculty'],
+    stepOrder: { student: null, hr_qa: null, faculty: 5, dean: null },
+    hasReturnFlow: true
+  },
+
+  // Dean flows
+  {
+    id: 'f18',
+    from: 'dean-user',
+    to: 'auth',
+    label: 'Dean credentials',
+    description: 'Dean authenticates with department ID (e.g., M001)',
+    roles: ['dean'],
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 1 }
+  },
+  {
+    id: 'f19',
+    from: 'auth',
+    to: 'dean-oversight',
+    label: 'Department scope',
+    description: 'Dean receives department-scoped data after HR/QA release',
+    roles: ['dean'],
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 3 }
+  },
+  {
+    id: 'f20',
+    from: 'verify-release',
+    to: 'dean-oversight',
+    label: 'Released aggregates',
+    description: 'Dean accesses department aggregates (student IDs hidden)',
+    roles: ['dean'],
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 4 }
+  },
+  {
+    id: 'f21',
+    from: 'dean-oversight',
+    to: 'tna-engine',
+    label: 'Department analysis',
+    description: 'Dean views department-level TNA snapshots and comparisons',
+    roles: ['dean'],
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 5 },
+    hasReturnFlow: true
+  },
+  {
+    id: 'f22',
+    from: 'dean-oversight',
+    to: 'verify-release',
+    label: 'Oversight sign-off',
+    description: 'Dean e-signs oversight within 7 days (does not gate faculty access)',
+    roles: ['dean'],
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 6 }
+  },
+
+  // Shared flows
+  {
+    id: 'f23',
+    from: 'tna-engine',
+    to: 'reports',
+    label: 'Analytics data',
+    description: 'TNA snapshots feed into report generation',
+    roles: ['hr_qa', 'dean', 'faculty'],
+    stepOrder: { student: null, hr_qa: 8, faculty: 6, dean: 7 },
+    hasReturnFlow: true
+  },
+  {
+    id: 'f24',
+    from: 'reports',
+    to: 'faculty-user',
+    label: 'PDF/Excel reports',
+    description: 'Faculty receives printable evaluation reports',
+    roles: ['faculty'],
+    stepOrder: { student: null, hr_qa: null, faculty: 7, dean: null },
+    hasReturnFlow: true
+  },
+  {
+    id: 'f25',
+    from: 'reports',
+    to: 'dean-user',
+    label: 'Department reports',
+    description: 'Dean receives department analytics reports',
+    roles: ['dean'],
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 8 },
+    hasReturnFlow: true
+  },
+  {
+    id: 'f26',
+    from: 'reports',
+    to: 'hr-user',
+    label: 'System reports',
+    description: 'HR/QA receives institution-wide reports and verification receipts',
+    roles: ['hr_qa'],
+    stepOrder: { student: null, hr_qa: 9, faculty: null, dean: null },
+    hasReturnFlow: true
+  }
 ];
 
 export const roleDescriptions: Record<UserRole, { title: string; subtitle: string; color: string; steps: number }> = {
-  student: { title: 'Student', subtitle: 'Submit evaluations', color: '#3b82f6', steps: 5 },
-  faculty: { title: 'Faculty', subtitle: 'View results & insights', color: '#8b5cf6', steps: 6 },
-  hr_qa: { title: 'HR / QA', subtitle: 'Administer & release', color: '#ef4444', steps: 9 },
-  dean: { title: 'Dean', subtitle: 'Oversee & analytics', color: '#f59e0b', steps: 7 }
+  student: {
+    title: 'Student',
+    subtitle: 'Submit faculty evaluations anonymously',
+    color: '#3b82f6',
+    steps: 5
+  },
+  faculty: {
+    title: 'Faculty',
+    subtitle: 'View evaluation results & development insights',
+    color: '#8b5cf6',
+    steps: 7
+  },
+  hr_qa: {
+    title: 'HR / QA',
+    subtitle: 'Administer system & release evaluations',
+    color: '#ef4444',
+    steps: 9
+  },
+  dean: {
+    title: 'Dean / Program Head',
+    subtitle: 'Oversee department analytics & sign-off',
+    color: '#f59e0b',
+    steps: 8
+  }
 };

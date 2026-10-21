@@ -42,6 +42,7 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
   const [draggedComponentId, setDraggedComponentId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [componentPositions, setComponentPositions] = useState<Record<string, { x: number; y: number }>>({});
+
   const [savedZooms, setSavedZooms] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({});
   const animationFrameRef = useRef<number | null>(null);
   const lastAutoFollowTime = useRef<number>(0);
@@ -87,6 +88,71 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
     }
   }), [componentPositions, viewBox, savedZooms]);
 
+  useEffect(() => {
+    if (!selectedComponent || manualControl) return;
+
+    const now = Date.now();
+    if (now - lastAutoFollowTime.current < 100) return;
+    lastAutoFollowTime.current = now;
+
+    const pos = componentPositions[selectedComponent];
+    if (!pos) return;
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    const padding = 300;
+    const targetWidth = 1200;
+    const targetHeight = 600;
+    
+    const targetViewBox = {
+      x: pos.x + COMPONENT_WIDTH / 2 - targetWidth / 2,
+      y: pos.y + COMPONENT_HEIGHT / 2 - targetHeight / 2,
+      width: targetWidth,
+      height: targetHeight
+    };
+
+    const duration = 400;
+    const startTime = performance.now();
+    const startViewBox = { ...viewBoxRef.current };
+
+    const deltaX = targetViewBox.x - startViewBox.x;
+    const deltaY = targetViewBox.y - startViewBox.y;
+    const deltaWidth = targetViewBox.width - startViewBox.width;
+    const deltaHeight = targetViewBox.height - startViewBox.height;
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      const eased = 1 - (1 - progress) * (1 - progress);
+
+      setViewBox({
+        x: startViewBox.x + deltaX * eased,
+        y: startViewBox.y + deltaY * eased,
+        width: startViewBox.width + deltaWidth * eased,
+        height: startViewBox.height + deltaHeight * eased
+      });
+
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animationFrameRef.current = null;
+      }
+    };
+
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+  }, [selectedComponent, manualControl, componentPositions]);
+
   const getComponentCenter = useCallback((componentId: string) => {
     const pos = componentPositions[componentId];
     if (!pos) return { x: 0, y: 0 };
@@ -106,16 +172,6 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
 
     return `M ${from.x} ${from.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${to.x} ${to.y}`;
   }, [getComponentCenter]);
-
-  const resetView = useCallback(() => {
-    setManualControl(true);
-    setViewBox({
-      x: -1000,
-      y: -400,
-      width: 2200,
-      height: 1000
-    });
-  }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 0 && ((e.target as SVGElement).tagName === 'svg' || (e.target as SVGElement).tagName === 'rect')) {
@@ -200,71 +256,6 @@ const SADCanvas = memo(forwardRef<SADCanvasHandle, SADCanvasProps>(({
     svg.addEventListener('wheel', handleWheel, { passive: false });
     return () => svg.removeEventListener('wheel', handleWheel);
   }, []);
-
-  useEffect(() => {
-    if (!selectedComponent || manualControl) return;
-
-    const now = Date.now();
-    if (now - lastAutoFollowTime.current < 100) return;
-    lastAutoFollowTime.current = now;
-
-    const pos = componentPositions[selectedComponent];
-    if (!pos) return;
-
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-
-    const padding = 300;
-    const targetWidth = 1200;
-    const targetHeight = 600;
-    
-    const targetViewBox = {
-      x: pos.x + COMPONENT_WIDTH / 2 - targetWidth / 2,
-      y: pos.y + COMPONENT_HEIGHT / 2 - targetHeight / 2,
-      width: targetWidth,
-      height: targetHeight
-    };
-
-    const duration = 400;
-    const startTime = performance.now();
-    const startViewBox = { ...viewBoxRef.current };
-
-    const deltaX = targetViewBox.x - startViewBox.x;
-    const deltaY = targetViewBox.y - startViewBox.y;
-    const deltaWidth = targetViewBox.width - startViewBox.width;
-    const deltaHeight = targetViewBox.height - startViewBox.height;
-
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      const eased = 1 - (1 - progress) * (1 - progress);
-
-      setViewBox({
-        x: startViewBox.x + deltaX * eased,
-        y: startViewBox.y + deltaY * eased,
-        width: startViewBox.width + deltaWidth * eased,
-        height: startViewBox.height + deltaHeight * eased
-      });
-
-      if (progress < 1) {
-        animationFrameRef.current = requestAnimationFrame(animate);
-      } else {
-        animationFrameRef.current = null;
-      }
-    };
-
-    animationFrameRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-    };
-  }, [selectedComponent, manualControl, componentPositions]);
 
   const getRelatedComponents = useCallback((componentId: string) => {
     const related = new Set<string>();

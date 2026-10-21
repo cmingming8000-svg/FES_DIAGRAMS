@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { GraduationCap, UserCog, Shield, Building2 } from 'lucide-react';
+import { Monitor, GraduationCap, UserCog, Shield } from 'lucide-react';
 import { SADClientType, sadClientTypes } from '../data/sadData';
 
 interface ClientPopupProps {
@@ -11,7 +11,7 @@ const clientIcons: Record<SADClientType, React.ReactNode> = {
   student: <GraduationCap className="w-6 h-6" />,
   faculty: <UserCog className="w-6 h-6" />,
   hr_qa: <Shield className="w-6 h-6" />,
-  dean: <Building2 className="w-6 h-6" />
+  dean: <Shield className="w-6 h-6" />
 };
 
 export default function ClientPopup({ onSelectClient, onClose }: ClientPopupProps) {

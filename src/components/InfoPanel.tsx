@@ -30,7 +30,7 @@ export default function InfoPanel({
   const roleColor = role ? roleDescriptions[role].color : '#06b6d4';
 
   return (
-    <div className="w-80 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-5 flex flex-col gap-4 h-fit">
+    <div className="w-80 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-5 flex flex-col gap-4 h-fit select-none">
       {role && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -116,7 +116,9 @@ export default function InfoPanel({
             className="space-y-3"
           >
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold px-2 py-1 rounded" style={{ color: selectedNode.color, backgroundColor: `${selectedNode.color}20` }}>{selectedNode.icon}</span>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: selectedNode.color, color: 'white' }}>
+                {selectedNode.icon.charAt(0)}
+              </div>
               <div>
                 <div className="font-bold text-white text-sm">{selectedNode.label}</div>
                 <div className="text-xs text-slate-400">{selectedNode.description}</div>

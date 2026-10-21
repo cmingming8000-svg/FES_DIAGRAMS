@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
 
 interface LegendProps {
   isExpanded: boolean;
@@ -23,7 +22,9 @@ export default function Legend({ isExpanded, onToggle }: LegendProps) {
           animate={{ rotate: isExpanded ? 180 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <ChevronDown className="w-4 h-4 text-slate-400" />
+          <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </motion.div>
       </button>
       
@@ -38,7 +39,6 @@ export default function Legend({ isExpanded, onToggle }: LegendProps) {
       >
         <div className="px-4 pb-4">
           <div className="space-y-3 text-xs">
-            {/* Node Types */}
             <div>
               <div className="text-slate-400 font-semibold mb-1.5">Node Types</div>
               <div className="space-y-1.5">
@@ -57,7 +57,6 @@ export default function Legend({ isExpanded, onToggle }: LegendProps) {
               </div>
             </div>
 
-            {/* Flow Types */}
             <div>
               <div className="text-slate-400 font-semibold mb-1.5">Data Flows</div>
               <div className="space-y-1.5">
@@ -76,7 +75,6 @@ export default function Legend({ isExpanded, onToggle }: LegendProps) {
               </div>
             </div>
 
-            {/* Node States */}
             <div>
               <div className="text-slate-400 font-semibold mb-1.5">Node States</div>
               <div className="space-y-1.5">
@@ -95,7 +93,6 @@ export default function Legend({ isExpanded, onToggle }: LegendProps) {
               </div>
             </div>
 
-            {/* Controls */}
             <div>
               <div className="text-slate-400 font-semibold mb-1.5">Controls</div>
               <div className="space-y-1 text-slate-300">

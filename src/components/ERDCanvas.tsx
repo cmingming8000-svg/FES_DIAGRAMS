@@ -1,5 +1,11 @@
-import { memo, forwardRef, useImperativeHandle, useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, memo, forwardRef, useImperativeHandle } from 'react';
+import { motion } from 'framer-motion';
 import { ERDEntity, ERDRelationship, attributeTypeColors, entities, relationships } from '../data/erdData';
+
+interface ERDCanvasProps {
+  selectedEntity: string | null;
+  onSelectEntity: (id: string) => void;
+}
 
 export interface ERDCanvasHandle {
   getEntityPositions: () => Record<string, { x: number; y: number }>;
@@ -9,20 +15,15 @@ export interface ERDCanvasHandle {
   saveZoomForEntity: (entityId: string) => void;
 }
 
-interface ERDCanvasProps {
-  selectedEntity: string | null;
-  onSelectEntity: (id: string) => void;
-}
-
 const ENTITY_WIDTH = 320;
 const ENTITY_HEADER_HEIGHT = 60;
 const ATTRIBUTE_HEIGHT = 36;
 const BASE_VIEWBOX_WIDTH = 2698.1860928977217;
 
-const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(({
+const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDCanvas({
   selectedEntity,
-  onSelectEntity
-}, ref) => {
+  onSelectEntity,
+}, ref) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [viewBox, setViewBox] = useState({
     x: -1267.5791392420338,
@@ -37,67 +38,49 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(({
   const [manualControl, setManualControl] = useState(false);
   const manualControlTimer = useRef<number | null>(null);
   const lastMouseMove = useRef<number>(0);
-
+  
   const [isDragging, setIsDragging] = useState(false);
   const [draggedEntityId, setDraggedEntityId] = useState<string | null>(null);
   const [draggedLabelId, setDraggedLabelId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [entityPositions, setEntityPositions] = useState<Record<string, { x: number; y: number }>>({});
-  const [labelPositions, setLabelPositions] = useState<Record<string, { t: number; scale: number }>>({
-    "r1": { t: 0.58, scale: 1 },
-    "r2": { t: 0.50, scale: 1 },
-    "r3": { t: 0.74, scale: 1 },
-    "r4": { t: 0.5, scale: 1 },
-    "r5": { t: 0.56, scale: 1 },
-    "r6": { t: 0.50, scale: 1 },
-    "r7": { t: 0.48, scale: 1 },
-    "r8": { t: 0.52, scale: 1 },
-    "r9": { t: 0.52, scale: 1 },
-    "r10": { t: 0.36, scale: 1 },
-    "r11": { t: 0.64, scale: 1 }
-  });
+  const [labelPositions, setLabelPositions] = useState<Record<string, { t: number; scale: number }>>({});
   const [savedZooms, setSavedZooms] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({
-    "users": { x: -1213.64, y: -200.83, width: 2142.04, height: 952.02 },
-    "academic_terms": { x: -1181.17, y: -255.45, width: 2251.67, height: 1000.74 },
-    "sessions": { x: -1015.76, y: -323.73, width: 1227.29, height: 545.46 },
-    "evaluation_ratings": { x: -729.96, y: 144.26, width: 1805.62, height: 802.50 },
-    "evaluation_criteria": { x: -172.91, y: 151.58, width: 1404.92, height: 624.41 },
-    "evaluations": { x: -1265.24, y: -252.16, width: 2251.67, height: 1000.74 },
-    "audit_logs": { x: -1107.25, y: -285.85, width: 1440.91, height: 640.40 },
-    "tna_snapshots": { x: -935.16, y: -244.49, width: 2251.67, height: 1000.74 },
-    "release_signatures": { x: -984.61, y: -249.97, width: 2251.67, height: 1000.74 }
+    "users": { x: -1213.6384947376102, y: -200.82613784515377, width: 2142.0386736157366, height: 952.0171882736618 },
+    "academic_terms": { x: -1181.1746330202216, y: -255.45062279995585, width: 2251.6734254763974, height: 1000.7437446561779 },
+    "sessions": { x: -1015.7597734733204, y: -323.7318424739222, width: 1227.285034764355, height: 545.4600154508249 },
+    "evaluation_ratings": { x: -729.956067123643, y: 144.2591566831623, width: 1805.6169198895234, height: 802.4964088397892 },
+    "evaluation_criteria": { x: -172.9130663232717, y: 151.57861164728413, width: 1404.919411155837, height: 624.4086271803727 },
+    "evaluations": { x: -1265.24150134656, y: -252.1635084566542, width: 2251.6734254763974, height: 1000.7437446561779 },
+    "audit_logs": { x: -1107.2546117195434, y: -285.847485282751, width: 1440.9084647556515, height: 640.4037621136234 },
+    "tna_snapshots": { x: -935.1554154181415, y: -244.49357498895034, width: 2251.6734254763974, height: 1000.7437446561779 },
+    "release_signatures": { x: -984.6065144336351, y: -249.9720988944531, width: 2251.6734254763974, height: 1000.7437446561779 }
   });
   const animationFrameRef = useRef<number | null>(null);
   const lastAutoFollowTime = useRef<number>(0);
-
+  
   useEffect(() => {
     const positions: Record<string, { x: number; y: number }> = {};
     entities.forEach(entity => {
       positions[entity.id] = { x: entity.x, y: entity.y };
     });
     setEntityPositions(positions);
-  }, []);
-
-  useEffect(() => {
-    viewBoxRef.current = viewBox;
-  }, [viewBox]);
-
-  useEffect(() => {
-    if (manualControl) {
-      if (manualControlTimer.current) {
-        clearTimeout(manualControlTimer.current);
-      }
-      manualControlTimer.current = window.setTimeout(() => {
-        setManualControl(false);
-      }, 2000);
-    }
-
-    return () => {
-      if (manualControlTimer.current) {
-        clearTimeout(manualControlTimer.current);
-      }
+    
+    const labelPos: Record<string, { t: number; scale: number }> = {
+      "r1": { t: 0.5800000000000002, scale: 1 },
+      "r2": { t: 0.5000000000000001, scale: 1 },
+      "r3": { t: 0.7400000000000003, scale: 1 },
+      "r4": { t: 0.5, scale: 1 },
+      "r5": { t: 0.5600000000000002, scale: 1 },
+      "r6": { t: 0.5000000000000001, scale: 1 },
+      "r7": { t: 0.48000000000000015, scale: 1 },
+      "r8": { t: 0.5200000000000001, scale: 1 },
+      "r9": { t: 0.5200000000000001, scale: 1 },
+      "r10": { t: 0.36000000000000004, scale: 1 },
+      "r11": { t: 0.6400000000000002, scale: 1 }
     };
-  }, [manualControl, viewBox]);
+    setLabelPositions(labelPos);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     getEntityPositions: () => entityPositions,
@@ -111,9 +94,31 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(({
       }));
     }
   }), [entityPositions, labelPositions, viewBox, savedZooms]);
+  
+  useEffect(() => {
+    viewBoxRef.current = viewBox;
+  }, [viewBox]);
+  
+  useEffect(() => {
+    if (manualControl) {
+      if (manualControlTimer.current) {
+        clearTimeout(manualControlTimer.current);
+      }
+      manualControlTimer.current = window.setTimeout(() => {
+        setManualControl(false);
+      }, 2000);
+    }
+    
+    return () => {
+      if (manualControlTimer.current) {
+        clearTimeout(manualControlTimer.current);
+      }
+    };
+  }, [manualControl, viewBox]);
 
   const rawZoomScale = useMemo(() => viewBox.width / BASE_VIEWBOX_WIDTH, [viewBox.width]);
   const zoomScale = useMemo(() => Math.max(0.5, Math.min(7.0, rawZoomScale * 1.15)), [rawZoomScale]);
+  
   const isZoomedOutFar = useMemo(() => rawZoomScale > 1.4, [rawZoomScale]);
 
   const getEntityCenter = useCallback((entityId: string) => {
@@ -189,16 +194,6 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(({
       return `M ${from.x} ${from.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${to.x} ${to.y}`;
     }
   }, [getEntityCenter]);
-
-  const resetView = useCallback(() => {
-    setManualControl(true);
-    setViewBox({
-      x: -1267.5791392420338,
-      y: -231.00340884071545,
-      width: 2835.3329298171025,
-      height: 1260.1479688076024
-    });
-  }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 0 && ((e.target as SVGElement).tagName === 'svg' || (e.target as SVGElement).tagName === 'rect')) {
@@ -324,50 +319,50 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(({
 
   useEffect(() => {
     if (!selectedEntity || manualControl) return;
-
+    
     const now = Date.now();
     if (now - lastAutoFollowTime.current < 100) return;
     lastAutoFollowTime.current = now;
-
+    
     const savedZoom = savedZooms[selectedEntity];
     if (!savedZoom) return;
-
+    
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
-
+    
     const duration = 400;
     const startTime = performance.now();
     const startViewBox = { ...viewBoxRef.current };
-
+    
     const deltaX = savedZoom.x - startViewBox.x;
     const deltaY = savedZoom.y - startViewBox.y;
     const deltaWidth = savedZoom.width - startViewBox.width;
     const deltaHeight = savedZoom.height - startViewBox.height;
-
+    
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
-
+      
       const eased = 1 - (1 - progress) * (1 - progress);
-
+      
       setViewBox({
         x: startViewBox.x + deltaX * eased,
         y: startViewBox.y + deltaY * eased,
         width: startViewBox.width + deltaWidth * eased,
         height: startViewBox.height + deltaHeight * eased
       });
-
+      
       if (progress < 1) {
         animationFrameRef.current = requestAnimationFrame(animate);
       } else {
         animationFrameRef.current = null;
       }
     };
-
+    
     animationFrameRef.current = requestAnimationFrame(animate);
-
+    
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -424,7 +419,7 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(({
         {relationships.map((rel) => {
           const isHighlighted = selectedEntity && (rel.from === selectedEntity || rel.to === selectedEntity);
           const isDimmed = selectedEntity && !isHighlighted;
-
+          
           return (
             <g key={rel.id} style={{ opacity: isDimmed ? 0.15 : 1, transition: 'opacity 0.3s' }}>
               <path
@@ -445,7 +440,7 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(({
                 const fontSize = 18 * zoomScale * labelScale;
                 const labelWidth = Math.max(100, rel.label.length * 10) * zoomScale * labelScale;
                 const labelHeight = 28 * zoomScale * labelScale;
-
+                
                 return (
                   <g>
                     <rect

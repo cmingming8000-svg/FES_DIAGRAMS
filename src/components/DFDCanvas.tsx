@@ -1,10 +1,6 @@
-import { memo, forwardRef, useImperativeHandle, useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, memo, forwardRef, useImperativeHandle } from 'react';
+import { motion } from 'framer-motion';
 import { DFDNode, DFDFlow, UserRole, nodes, flows } from '../data/dfdData';
-
-export interface DFDCanvasHandle {
-  getPositions: () => Record<string, { x: number; y: number }>;
-  getZoom: () => { x: number; y: number; width: number; height: number };
-}
 
 interface DFDCanvasProps {
   selectedNode: string | null;
@@ -16,19 +12,45 @@ interface DFDCanvasProps {
   onAuthNodeClick?: () => void;
 }
 
+export interface DFDCanvasHandle {
+  getPositions: () => Record<string, { x: number; y: number }>;
+  getZoom: () => { x: number; y: number; width: number; height: number };
+}
+
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 140;
 const BASE_VIEWBOX_WIDTH = 2700;
 
-const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
+// Simple text labels instead of icons for performance
+const iconLabels: Record<string, string> = {
+  GraduationCap: 'STU',
+  UserCog: 'FAC',
+  Shield: 'HR',
+  Building2: 'DEAN',
+  Lock: 'AUTH',
+  FileEdit: 'EVAL',
+  EyeOff: 'PII',
+  Settings: 'ADM',
+  CheckCircle: 'REL',
+  BarChart3: 'DASH',
+  ClipboardCheck: 'OVER',
+  Brain: 'TNA',
+  FileText: 'AUD',
+  Database: 'DB',
+  HardDrive: 'LOG',
+  Key: 'SES',
+  FileOutput: 'RPT'
+};
+
+const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(function DFDCanvas({
   selectedNode,
   activeFlowIds,
   highlightedNodeIds,
   currentStep,
   role,
   onSelectNode,
-  onAuthNodeClick
-}, ref) => {
+  onAuthNodeClick,
+}, ref) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [viewBox, setViewBox] = useState({ x: -50, y: 0, width: 2700, height: 1200 });
   const viewBoxRef = useRef(viewBox);
@@ -39,14 +61,16 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
   const [manualControl, setManualControl] = useState(false);
   const manualControlTimer = useRef<number | null>(null);
   const lastMouseMove = useRef<number>(0);
-
+  
+  // Drag state
   const [isDragging, setIsDragging] = useState(false);
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
   const animationFrameRef = useRef<number | null>(null);
   const lastAutoFollowTime = useRef<number>(0);
-
+  
+  // Initialize node positions from data
   useEffect(() => {
     const positions: Record<string, { x: number; y: number }> = {};
     nodes.forEach(node => {
@@ -55,10 +79,135 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
     setNodePositions(positions);
   }, []);
 
+  // Keyboard shortcut to save node positions (Ctrl+Shift+Space) - DFD mode only
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.code === 'Space') {
+        e.preventDefault();
+        
+        // Create a downloadable JSON file with the positions
+        const positionsJson = JSON.stringify(nodePositions, null, 2);
+        const blob = new Blob([positionsJson], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'dfd-positions.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        // Also log to console for easy copying
+        console.log('=== DFD NODE POSITIONS ===');
+        console.log(positionsJson);
+        console.log('==========================');
+        
+        // Show modal with the JSON for easy copying
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(15, 23, 42, 0.95);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(6, 182, 212, 0.3);
+          border-radius: 12px;
+          padding: 24px;
+          z-index: 9999;
+          max-width: 600px;
+          max-height: 80vh;
+          overflow: auto;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        `;
+        
+        modal.innerHTML = `
+          <div style="color: #67e8f9; font-size: 16px; font-weight: 600; margin-bottom: 12px;">
+            ✅ DFD Node Positions Saved
+          </div>
+          <div style="color: #94a3b8; font-size: 12px; margin-bottom: 16px;">
+            Copy the JSON below and share it with the assistant to make positions permanent:
+          </div>
+          <textarea 
+            readonly 
+            style="
+              width: 100%;
+              height: 300px;
+              background: rgba(30, 41, 59, 0.8);
+              border: 1px solid rgba(100, 116, 139, 0.3);
+              border-radius: 8px;
+              padding: 12px;
+              color: #e2e8f0;
+              font-family: 'Courier New', monospace;
+              font-size: 11px;
+              resize: none;
+            "
+          >${positionsJson}</textarea>
+          <button 
+            onclick="
+              navigator.clipboard.writeText(this.parentElement.querySelector('textarea').value);
+              this.textContent = '✓ Copied!';
+              setTimeout(() => this.textContent = 'Copy to Clipboard', 2000);
+            "
+            style="
+              margin-top: 12px;
+              width: 100%;
+              padding: 10px;
+              background: linear-gradient(135deg, #06b6d4, #3b82f6);
+              border: none;
+              border-radius: 8px;
+              color: white;
+              font-size: 13px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: opacity 0.2s;
+            "
+            onmouseover="this.style.opacity='0.9'"
+            onmouseout="this.style.opacity='1'"
+          >
+            Copy to Clipboard
+          </button>
+          <button 
+            onclick="this.parentElement.parentElement.remove()"
+            style="
+              margin-top: 8px;
+              width: 100%;
+              padding: 8px;
+              background: rgba(100, 116, 139, 0.2);
+              border: 1px solid rgba(100, 116, 139, 0.3);
+              border-radius: 8px;
+              color: #94a3b8;
+              font-size: 12px;
+              cursor: pointer;
+              transition: background 0.2s;
+            "
+            onmouseover="this.style.background='rgba(100, 116, 139, 0.3)'"
+            onmouseout="this.style.background='rgba(100, 116, 139, 0.2)'"
+          >
+            Close
+          </button>
+        `;
+        
+        document.body.appendChild(modal);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [nodePositions]);
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    getPositions: () => nodePositions,
+    getZoom: () => viewBox
+  }), [nodePositions, viewBox]);
+  
+  // Keep ref in sync with state
   useEffect(() => {
     viewBoxRef.current = viewBox;
   }, [viewBox]);
-
+  
+  // Reset manual control flag after a delay
   useEffect(() => {
     if (manualControl) {
       if (manualControlTimer.current) {
@@ -68,7 +217,7 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
         setManualControl(false);
       }, 2000);
     }
-
+    
     return () => {
       if (manualControlTimer.current) {
         clearTimeout(manualControlTimer.current);
@@ -76,25 +225,24 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
     };
   }, [manualControl, viewBox]);
 
-  useImperativeHandle(ref, () => ({
-    getPositions: () => nodePositions,
-    getZoom: () => viewBox
-  }), [nodePositions, viewBox]);
-
+  // Calculate zoom scale for text elements - memoized for performance
   const rawZoomScale = useMemo(() => viewBox.width / BASE_VIEWBOX_WIDTH, [viewBox.width]);
   const zoomScale = useMemo(() => Math.max(0.5, Math.min(7.0, rawZoomScale * 1.15)), [rawZoomScale]);
+  
+  // Hide secondary text when zoomed out too far to prevent overlaps
   const isZoomedOutFar = useMemo(() => rawZoomScale > 1.4, [rawZoomScale]);
   const isZoomedOutMedium = useMemo(() => rawZoomScale > 1.1, [rawZoomScale]);
 
+  // Collision detection removed - user has arranged nodes intentionally
   const maxSafeScale = 10.0;
 
-  const getNodeCenter = useCallback((nodeId: string) => {
+  const getNodeCenter = (nodeId: string) => {
     const pos = nodePositions[nodeId];
     if (!pos) return { x: 0, y: 0 };
     return { x: pos.x + NODE_WIDTH / 2, y: pos.y + NODE_HEIGHT / 2 };
-  }, [nodePositions]);
+  };
 
-  const getFlowPath = useCallback((flow: DFDFlow) => {
+  const getFlowPath = (flow: DFDFlow) => {
     const from = getNodeCenter(flow.from);
     const to = getNodeCenter(flow.to);
     const dx = to.x - from.x;
@@ -113,9 +261,9 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
       const cy2 = to.y - dy * 0.4;
       return `M ${from.x} ${from.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${to.x} ${to.y}`;
     }
-  }, [getNodeCenter]);
+  };
 
-  const getReturnPath = useCallback((flow: DFDFlow) => {
+  const getReturnPath = (flow: DFDFlow) => {
     const from = getNodeCenter(flow.from);
     const to = getNodeCenter(flow.to);
     const dx = to.x - from.x;
@@ -144,13 +292,21 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
       const cy2 = rTo.y - rdy * 0.4;
       return `M ${rFrom.x} ${rFrom.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${rTo.x} ${rTo.y}`;
     }
-  }, [getNodeCenter]);
+  };
 
-  const resetView = useCallback(() => {
-    setManualControl(true);
-    setViewBox({ x: -50, y: 0, width: 2700, height: 1200 });
-  }, []);
+  const isFlowActive = (flow: DFDFlow) => {
+    if (!role) return false;
+    return activeFlowIds.includes(flow.id);
+  };
 
+  const getCurrentFlow = () => {
+    if (!role) return null;
+    return flows.find((f) => f.stepOrder[role] === currentStep);
+  };
+
+  const currentFlow = getCurrentFlow();
+
+  // Pan handling
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 0 && ((e.target as SVGElement).tagName === 'svg' || (e.target as SVGElement).tagName === 'rect')) {
       setIsPanning(true);
@@ -211,6 +367,7 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
     setDraggedNodeId(null);
   }, []);
 
+  // Wheel zoom
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
@@ -235,11 +392,7 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
     return () => svg.removeEventListener('wheel', handleWheel);
   }, []);
 
-  const currentFlow = useMemo(() => {
-    if (!role) return null;
-    return flows.find((f) => f.stepOrder[role] === currentStep);
-  }, [currentStep, role]);
-
+  // Auto-follow active nodes when step changes with smooth animation
   useEffect(() => {
     if (!role || !currentFlow || manualControl) return;
     
@@ -329,6 +482,13 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
 
   return (
     <div className="relative w-full h-full">
+      {hoveredNode && !selectedNode && (
+        <div className="absolute top-4 left-4 z-20 px-3 py-2 rounded-lg bg-slate-800/90 backdrop-blur border border-white/10 text-xs text-white max-w-[200px]">
+          <div className="font-semibold">{nodes.find(n => n.id === hoveredNode)?.label}</div>
+          <div className="text-slate-400 mt-0.5">{nodes.find(n => n.id === hoveredNode)?.description}</div>
+        </div>
+      )}
+
       <svg
         ref={svgRef}
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
@@ -345,9 +505,20 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
         onMouseLeave={handleMouseUp}
       >
         <defs>
-          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
-          </pattern>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="glow-strong">
+            <feGaussianBlur stdDeviation="5" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
           <marker id="arrowhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
             <polygon points="0 0, 10 4, 0 8" fill="#64748b" />
           </marker>
@@ -366,19 +537,15 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
           <marker id="arrowhead-return-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
             <polygon points="0 0, 8 3, 0 6" fill="rgba(16,185,129,0.3)" />
           </marker>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="4" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
+          </pattern>
         </defs>
 
         <rect x={viewBox.x - 200} y={viewBox.y - 200} width={viewBox.width + 400} height={viewBox.height + 400} fill="url(#grid)" />
 
         {flows.map((flow) => {
-          const active = activeFlowIds.includes(flow.id);
+          const active = isFlowActive(flow);
           const isCurrent = currentFlow?.id === flow.id;
           const dimmed = role && !active;
           const isHovered = hoveredFlow === flow.id;
@@ -426,6 +593,146 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
                   opacity={isCurrent ? 0.95 : active ? 0.7 : isHovered ? 0.5 : 0.3}
                 />
               )}
+              {flow.hasReturnFlow && isCurrent && !isZoomedOutFar && (() => {
+                const from = getNodeCenter(flow.from);
+                const to = getNodeCenter(flow.to);
+                const dx = to.x - from.x;
+                const dy = to.y - from.y;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                const offset = 15;
+                const nx = -dy / len * offset;
+                const ny = dx / len * offset;
+                const midX = (from.x + to.x) / 2 + nx;
+                const midY = (from.y + to.y) / 2 + ny;
+                
+                let returnLabel = 'RESPONSE';
+                let returnColor = '#10b981';
+                const labelLower = flow.label.toLowerCase();
+                
+                if (labelLower.includes('credential') || labelLower.includes('login')) {
+                  returnLabel = 'AUTH TOKEN';
+                  returnColor = '#8b5cf6';
+                } else if (labelLower.includes('session')) {
+                  returnLabel = 'SESSION ID';
+                  returnColor = '#8b5cf6';
+                } else if (labelLower.includes('evaluation') || labelLower.includes('query')) {
+                  returnLabel = 'DATA';
+                  returnColor = '#3b82f6';
+                } else if (labelLower.includes('audit') || labelLower.includes('verify')) {
+                  returnLabel = 'CONFIRM';
+                  returnColor = '#6366f1';
+                } else if (labelLower.includes('report')) {
+                  returnLabel = 'REPORT';
+                  returnColor = '#0ea5e9';
+                }
+                
+                return (
+                  <g>
+                    <rect
+                      x={midX - 35}
+                      y={midY - 12}
+                      width={70}
+                      height={20}
+                      rx={4}
+                      fill={returnColor}
+                      opacity="0.85"
+                    />
+                    <text
+                      x={midX}
+                      y={midY + 2}
+                      textAnchor="middle"
+                      fontSize={10}
+                      fontWeight="600"
+                      fill="white"
+                      className="pointer-events-none"
+                    >
+                      {returnLabel}
+                    </text>
+                  </g>
+                );
+              })()}
+              {isCurrent && !isZoomedOutMedium && (() => {
+                const fromNode = nodes.find(n => n.id === flow.from);
+                const toNode = nodes.find(n => n.id === flow.to);
+                if (!fromNode || !toNode) return null;
+                
+                const isSend = fromNode.type === 'external' || fromNode.type === 'process';
+                const directionLabel = isSend ? 'SEND' : 'RECEIVE';
+                const directionColor = isSend ? '#f59e0b' : '#10b981';
+                
+                let dataType = 'DATA';
+                let dataTypeColor = '#64748b';
+                const labelLower = flow.label.toLowerCase();
+                if (labelLower.includes('credential') || labelLower.includes('login') || labelLower.includes('password')) {
+                  dataType = 'CREDENTIALS';
+                  dataTypeColor = '#ef4444';
+                } else if (labelLower.includes('session') || labelLower.includes('token')) {
+                  dataType = 'SESSION';
+                  dataTypeColor = '#8b5cf6';
+                } else if (labelLower.includes('evaluation') || labelLower.includes('rating')) {
+                  dataType = 'EVALUATION';
+                  dataTypeColor = '#3b82f6';
+                } else if (labelLower.includes('audit') || labelLower.includes('log')) {
+                  dataType = 'AUDIT';
+                  dataTypeColor = '#6366f1';
+                } else if (labelLower.includes('report') || labelLower.includes('pdf') || labelLower.includes('excel')) {
+                  dataType = 'REPORT';
+                  dataTypeColor = '#0ea5e9';
+                } else if (labelLower.includes('analytics') || labelLower.includes('tna') || labelLower.includes('insight')) {
+                  dataType = 'ANALYTICS';
+                  dataTypeColor = '#14b8a6';
+                }
+                
+                const midX = (getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2;
+                const midY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2;
+                const labelOffset = 25;
+                
+                return (
+                  <g>
+                    <rect
+                      x={midX - 65}
+                      y={midY - labelOffset - 14}
+                      width={60}
+                      height={24}
+                      rx={5}
+                      fill={directionColor}
+                      opacity="0.9"
+                    />
+                    <text
+                      x={midX - 35}
+                      y={midY - labelOffset - 1}
+                      textAnchor="middle"
+                      fontSize={13}
+                      fontWeight="700"
+                      fill="white"
+                      className="pointer-events-none"
+                    >
+                      {directionLabel}
+                    </text>
+                    
+                    <rect
+                      x={midX + 5}
+                      y={midY - labelOffset - 14}
+                      width={70}
+                      height={24}
+                      rx={5}
+                      fill={dataTypeColor}
+                      opacity="0.85"
+                    />
+                    <text
+                      x={midX + 40}
+                      y={midY - labelOffset - 1}
+                      textAnchor="middle"
+                      fontSize={12}
+                      fontWeight="600"
+                      fill="white"
+                      className="pointer-events-none"
+                    >
+                      {dataType}
+                    </text>
+                  </g>
+                );
+              })()}
               {isCurrent && (
                 <>
                   <circle r="5" fill="#22d3ee" opacity="0.9">
@@ -438,6 +745,49 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
                   )}
                 </>
               )}
+              {!isZoomedOutFar && (isCurrent || isHovered) && (() => {
+                const labelX = (getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2;
+                const labelY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 + 30;
+                const flowLabelSize = 18;
+                const descSize = 15;
+                const boxHeight = 60;
+                const estimatedWidth = Math.max(200, Math.max(flow.label.length, flow.description.length) * 9);
+                
+                return (
+                  <g>
+                    <rect
+                      x={labelX - estimatedWidth / 2}
+                      y={labelY - boxHeight / 2}
+                      width={estimatedWidth}
+                      height={boxHeight}
+                      rx={8}
+                      fill="rgba(15,23,42,0.95)"
+                      stroke={isCurrent ? '#22d3ee55' : '#47556955'}
+                      strokeWidth={1.5}
+                    />
+                    <text
+                      x={labelX}
+                      y={labelY - 8}
+                      textAnchor="middle"
+                      className="font-bold pointer-events-none"
+                      fontSize={flowLabelSize}
+                      fill={isCurrent ? '#67e8f9' : '#cbd5e1'}
+                    >
+                      {flow.label}
+                    </text>
+                    <text
+                      x={labelX}
+                      y={labelY + 14}
+                      textAnchor="middle"
+                      className="pointer-events-none"
+                      fontSize={descSize}
+                      fill={isCurrent ? '#94a3b8' : '#64748b'}
+                    >
+                      {flow.description}
+                    </text>
+                  </g>
+                );
+              })()}
             </g>
           );
         })}
@@ -451,10 +801,25 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
           const isCurrent = isCurrentSource || isCurrentTarget;
           const isDimmed = role && !isHighlighted && !isSelected;
           const isHovered = hoveredNode === node.id;
+          const isDraggingThis = draggedNodeId === node.id;
+
           const isAuthEntry = node.id === 'auth' && !role;
 
-          const nodeScale = isDimmed ? 0.55 : isCurrent ? 1.5 : isHighlighted ? 1.0 : 1.0;
-          const nodeOpacity = isDimmed ? 0.08 : isCurrent ? 1 : isHighlighted ? 0.9 : 1;
+          const nodeScale = isDimmed
+            ? 0.55
+            : isCurrent
+            ? 1.5
+            : isHighlighted
+            ? 1.0
+            : 1.0;
+
+          const nodeOpacity = isDimmed
+            ? 0.08
+            : isCurrent
+            ? 1
+            : isHighlighted
+            ? 0.9
+            : 1;
 
           const cx = pos.x + NODE_WIDTH / 2;
           const cy = pos.y + NODE_HEIGHT / 2;
@@ -477,10 +842,10 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
               onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
               onMouseEnter={() => setHoveredNode(node.id)}
               onMouseLeave={() => setHoveredNode(null)}
-              className={isDragging ? 'cursor-grabbing' : 'cursor-grab'}
+              className={isDraggingThis ? 'cursor-grabbing' : 'cursor-grab'}
               style={{
                 opacity: nodeOpacity,
-                transition: isDragging ? 'none' : 'opacity 0.8s ease-in-out, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: isDraggingThis ? 'none' : 'opacity 0.8s ease-in-out, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
                 transformOrigin: `${cx}px ${cy}px`,
                 transform: `scale(${totalScale})`,
               }}
@@ -499,7 +864,7 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
               )}
 
               {isAuthEntry && (
-                <rect
+                <motion.rect
                   x={pos.x - 5}
                   y={pos.y - 5}
                   width={NODE_WIDTH + 10}
@@ -508,6 +873,9 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
                   fill="#06b6d415"
                   stroke="#06b6d4"
                   strokeWidth="2.5"
+                  initial={{ opacity: 0.5 }}
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
                 />
               )}
 
@@ -561,7 +929,7 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(({
                 fill={isAuthEntry ? '#06b6d4' : isCurrent ? 'white' : node.color}
                 opacity={0.9}
               >
-                {node.icon}
+                {iconLabels[node.icon] || node.icon}
               </text>
 
               {!isZoomedOutFar && (
