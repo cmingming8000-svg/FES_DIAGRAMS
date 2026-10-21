@@ -13,6 +13,8 @@ export interface ERDCanvasHandle {
   getEntityPositions: () => Record<string, { x: number; y: number }>;
   getLabelPositions: () => Record<string, { t: number; scale: number }>;
   getZoom: () => { x: number; y: number; width: number; height: number };
+  getSavedZooms: () => Record<string, { x: number; y: number; width: number; height: number }>;
+  saveZoomForEntity: (entityId: string) => void;
 }
 
 const ENTITY_WIDTH = 320;
@@ -44,6 +46,8 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
   const [entityPositions, setEntityPositions] = useState<Record<string, { x: number; y: number }>>({});
   // t: 0-1 parameter along the curve, scale: label size multiplier
   const [labelPositions, setLabelPositions] = useState<Record<string, { t: number; scale: number }>>({});
+  // Saved zoom levels per entity
+  const [savedZooms, setSavedZooms] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({});
   
   // Initialize entity positions from data
   useEffect(() => {
@@ -68,8 +72,15 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
   useImperativeHandle(ref, () => ({
     getEntityPositions: () => entityPositions,
     getLabelPositions: () => labelPositions, // Now returns { t, scale } instead of { x, y, scale }
-    getZoom: () => viewBox
-  }), [entityPositions, labelPositions, viewBox]);
+    getZoom: () => viewBox,
+    getSavedZooms: () => savedZooms,
+    saveZoomForEntity: (entityId: string) => {
+      setSavedZooms(prev => ({
+        ...prev,
+        [entityId]: { ...viewBox }
+      }));
+    }
+  }), [entityPositions, labelPositions, viewBox, savedZooms]);
   
   // Keep ref in sync with state
   useEffect(() => {

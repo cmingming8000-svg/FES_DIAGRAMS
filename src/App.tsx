@@ -114,6 +114,66 @@ function App() {
         setCurrentStep((prev) => Math.max(prev - 1, 1));
       } else if (e.key === 'Escape') {
         handleReset();
+      } else if (e.ctrlKey && e.altKey && e.code === 'Space') {
+        // Ctrl+Alt+Space: Save current zoom for selected entity (ERD mode only)
+        e.preventDefault();
+        
+        if (viewMode === 'erd' && selectedEntity) {
+          erdCanvasRef.current?.saveZoomForEntity(selectedEntity);
+          
+          // Show feedback
+          const toast = document.createElement('div');
+          toast.style.cssText = `
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(6, 182, 212, 0.95);
+            border: 2px solid #22d3ee;
+            border-radius: 12px;
+            padding: 16px 24px;
+            z-index: 9999;
+            box-shadow: 0 10px 40px rgba(6, 182, 212, 0.4);
+            animation: slideDown 0.3s ease-out;
+          `;
+          toast.innerHTML = `
+            <div style="color: white; font-size: 14px; font-weight: 600; text-align: center;">
+              ✅ Zoom saved for <strong>${selectedEntity}</strong>
+            </div>
+            <div style="color: rgba(255,255,255,0.8); font-size: 12px; text-align: center; margin-top: 4px;">
+              Press Ctrl+Shift+Space to export all data
+            </div>
+          `;
+          document.body.appendChild(toast);
+          
+          setTimeout(() => {
+            toast.style.animation = 'fadeOut 0.3s ease-out';
+            setTimeout(() => document.body.removeChild(toast), 300);
+          }, 2000);
+        } else if (viewMode === 'erd' && !selectedEntity) {
+          // Show warning if no entity selected
+          const toast = document.createElement('div');
+          toast.style.cssText = `
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.95);
+            border: 2px solid #f87171;
+            border-radius: 12px;
+            padding: 16px 24px;
+            z-index: 9999;
+            box-shadow: 0 10px 40px rgba(239, 68, 68, 0.4);
+          `;
+          toast.innerHTML = `
+            <div style="color: white; font-size: 14px; font-weight: 600; text-align: center;">
+              ⚠️ Select an entity first
+            </div>
+          `;
+          document.body.appendChild(toast);
+          
+          setTimeout(() => document.body.removeChild(toast), 2000);
+        }
       } else if (e.ctrlKey && e.shiftKey && e.code === 'Space') {
         e.preventDefault();
         
@@ -137,16 +197,18 @@ function App() {
           fileName = 'dfd-positions.json';
           title = 'DFD Node Positions Saved';
         } else {
-          // ERD mode - save entity positions, label positions, zoom, and selected entity
+          // ERD mode - save entity positions, label positions, zoom, saved zooms, and selected entity
           const entityPositions = erdCanvasRef.current?.getEntityPositions() || {};
           const labelPositions = erdCanvasRef.current?.getLabelPositions() || {};
           const zoom = erdCanvasRef.current?.getZoom() || { x: 0, y: 0, width: 2700, height: 1200 };
+          const savedZooms = erdCanvasRef.current?.getSavedZooms() || {};
           
           dataToSave = {
             mode: 'erd',
             entityPositions,
             labelPositions,
             zoom,
+            savedZooms, // Include saved zooms per entity
             selectedEntity
           };
           fileName = 'erd-positions.json';
@@ -297,6 +359,17 @@ function App() {
                 </motion.button>
               )}
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-900/30 backdrop-blur border border-cyan-500/30 text-xs text-cyan-300">
+                {viewMode === 'erd' && (
+                  <>
+                    <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Ctrl</kbd>
+                    <span>+</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Alt</kbd>
+                    <span>+</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Space</kbd>
+                    <span className="ml-1">Save Zoom</span>
+                    <span className="mx-2 text-cyan-500">|</span>
+                  </>
+                )}
                 <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Ctrl</kbd>
                 <span>+</span>
                 <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Shift</kbd>
