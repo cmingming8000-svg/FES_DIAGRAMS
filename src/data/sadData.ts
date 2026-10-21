@@ -18,7 +18,7 @@ export interface SADConnection {
   description: string;
 }
 
-export type SADClientType = 'student' | 'faculty' | 'admin';
+export type SADClientType = 'student' | 'faculty' | 'hr_qa' | 'dean';
 
 export interface SADFlowStep {
   componentId: string;
@@ -29,7 +29,8 @@ export interface SADFlowStep {
 export const sadClientTypes: { id: SADClientType; label: string; description: string; color: string }[] = [
   { id: 'student', label: 'Student', description: 'Submit evaluations', color: '#3b82f6' },
   { id: 'faculty', label: 'Faculty', description: 'View evaluation results', color: '#8b5cf6' },
-  { id: 'admin', label: 'HR/QA or Dean', description: 'Manage system & release', color: '#ef4444' }
+  { id: 'hr_qa', label: 'HR/QA', description: 'Manage system & release evaluations', color: '#ef4444' },
+  { id: 'dean', label: 'Dean', description: 'Oversight & analytics', color: '#f59e0b' }
 ];
 
 export const sadFlowSequences: Record<SADClientType, SADFlowStep[]> = {
@@ -57,17 +58,29 @@ export const sadFlowSequences: Record<SADClientType, SADFlowStep[]> = {
     { componentId: 'tna-engine', connectionId: 'c12', description: 'TNA insights computed' },
     { componentId: 'postgresql', description: 'Results returned to faculty' }
   ],
-  admin: [
+  hr_qa: [
     { componentId: 'client-entry', description: 'Entry point' },
-    { componentId: 'admin-client', connectionId: 'c3', description: 'Admin accesses web interface' },
+    { componentId: 'hr-qa-client', connectionId: 'c3', description: 'HR/QA accesses admin interface' },
     { componentId: 'load-balancer', connectionId: 'c5', description: 'Request routed through load balancer' },
     { componentId: 'api-server', connectionId: 'c6', description: 'API handles admin request' },
-    { componentId: 'auth-service', connectionId: 'c10', description: 'Admin authentication' },
+    { componentId: 'auth-service', connectionId: 'c10', description: 'HR/QA authentication' },
     { componentId: 'session-store', description: 'Admin session created' },
-    { componentId: 'evaluation-service', connectionId: 'c9', description: 'System management operations' },
-    { componentId: 'postgresql', connectionId: 'c13', description: 'Admin data operations' },
-    { componentId: 'audit-log', description: 'All actions logged for compliance' },
-    { componentId: 'tna-engine', description: 'System analytics & reporting' }
+    { componentId: 'evaluation-service', connectionId: 'c9', description: 'Manage evaluations & criteria' },
+    { componentId: 'pii-redaction-service', connectionId: 'c14', description: 'Verify PII redaction' },
+    { componentId: 'postgresql', connectionId: 'c13', description: 'Update evaluation data' },
+    { componentId: 'audit-log', description: 'All admin actions logged' }
+  ],
+  dean: [
+    { componentId: 'client-entry', description: 'Entry point' },
+    { componentId: 'dean-client', connectionId: 'c3', description: 'Dean accesses analytics interface' },
+    { componentId: 'load-balancer', connectionId: 'c5', description: 'Request routed through load balancer' },
+    { componentId: 'api-server', connectionId: 'c6', description: 'API handles analytics request' },
+    { componentId: 'auth-service', connectionId: 'c10', description: 'Dean authentication' },
+    { componentId: 'session-store', description: 'Dean session created' },
+    { componentId: 'tna-engine', connectionId: 'c11', description: 'Generate department analytics' },
+    { componentId: 'postgresql', connectionId: 'c12', description: 'Query aggregated data' },
+    { componentId: 'evaluation-service', description: 'View evaluation summaries' },
+    { componentId: 'audit-log', description: 'Access logged for compliance' }
   ]
 };
 
@@ -103,14 +116,24 @@ export const components: SADComponent[] = [
     tourOrder: 2
   },
   {
-    id: 'admin-client',
-    label: 'Admin Client',
-    description: 'Web browser interface for HR/QA and Dean',
+    id: 'hr-qa-client',
+    label: 'HR/QA Client',
+    description: 'Web interface for system management',
     type: 'frontend',
     x: -800,
-    y: 200,
+    y: 150,
     color: '#ef4444',
     tourOrder: 3
+  },
+  {
+    id: 'dean-client',
+    label: 'Dean Client',
+    description: 'Web interface for oversight & analytics',
+    type: 'frontend',
+    x: -800,
+    y: 300,
+    color: '#f59e0b',
+    tourOrder: 4
   },
   {
     id: 'load-balancer',
@@ -120,7 +143,7 @@ export const components: SADComponent[] = [
     x: -400,
     y: 0,
     color: '#f59e0b',
-    tourOrder: 4
+    tourOrder: 5
   },
   {
     id: 'web-server',
@@ -130,7 +153,7 @@ export const components: SADComponent[] = [
     x: 0,
     y: -200,
     color: '#10b981',
-    tourOrder: 5
+    tourOrder: 6
   },
   {
     id: 'api-server',
@@ -140,7 +163,7 @@ export const components: SADComponent[] = [
     x: 0,
     y: 0,
     color: '#06b6d4',
-    tourOrder: 6
+    tourOrder: 7
   },
   {
     id: 'auth-service',
@@ -150,7 +173,7 @@ export const components: SADComponent[] = [
     x: 0,
     y: 200,
     color: '#ec4899',
-    tourOrder: 7
+    tourOrder: 8
   },
   {
     id: 'evaluation-service',
@@ -160,7 +183,7 @@ export const components: SADComponent[] = [
     x: 400,
     y: -200,
     color: '#14b8a6',
-    tourOrder: 8
+    tourOrder: 9
   },
   {
     id: 'pii-redaction-service',
@@ -170,7 +193,7 @@ export const components: SADComponent[] = [
     x: 400,
     y: 0,
     color: '#f43f5e',
-    tourOrder: 9
+    tourOrder: 10
   },
   {
     id: 'tna-engine',
@@ -180,7 +203,7 @@ export const components: SADComponent[] = [
     x: 400,
     y: 200,
     color: '#8b5cf6',
-    tourOrder: 10
+    tourOrder: 11
   },
   {
     id: 'postgresql',
@@ -190,7 +213,7 @@ export const components: SADComponent[] = [
     x: 800,
     y: -100,
     color: '#6366f1',
-    tourOrder: 11
+    tourOrder: 12
   },
   {
     id: 'audit-log',
@@ -200,7 +223,7 @@ export const components: SADComponent[] = [
     x: 800,
     y: 100,
     color: '#475569',
-    tourOrder: 12
+    tourOrder: 13
   },
   {
     id: 'session-store',
@@ -210,7 +233,7 @@ export const components: SADComponent[] = [
     x: 800,
     y: 300,
     color: '#0ea5e9',
-    tourOrder: 13
+    tourOrder: 14
   }
 ];
 
@@ -233,11 +256,19 @@ export const connections: SADConnection[] = [
   },
   {
     id: 'c3',
-    from: 'admin-client',
+    from: 'hr-qa-client',
     to: 'load-balancer',
     label: 'HTTPS',
     protocol: 'HTTPS',
-    description: 'Admin requests'
+    description: 'HR/QA requests'
+  },
+  {
+    id: 'c15',
+    from: 'dean-client',
+    to: 'load-balancer',
+    label: 'HTTPS',
+    protocol: 'HTTPS',
+    description: 'Dean requests'
   },
   {
     id: 'c4',

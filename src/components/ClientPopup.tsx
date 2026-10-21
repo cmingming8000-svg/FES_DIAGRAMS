@@ -10,7 +10,8 @@ interface ClientPopupProps {
 const clientIcons: Record<SADClientType, React.ReactNode> = {
   student: <GraduationCap className="w-6 h-6" />,
   faculty: <UserCog className="w-6 h-6" />,
-  admin: <Shield className="w-6 h-6" />
+  hr_qa: <Shield className="w-6 h-6" />,
+  dean: <Shield className="w-6 h-6" />
 };
 
 export default function ClientPopup({ onSelectClient, onClose }: ClientPopupProps) {
