@@ -315,19 +315,41 @@ const ERDCanvas = memo(function ERDCanvas({
                 markerStart={rel.fromCardinality === '1' ? 'url(#one)' : 'url(#many)'}
                 markerEnd={rel.toCardinality === '1' ? 'url(#one)' : 'url(#many)'}
               />
-              {/* Relationship label */}
-              {!isZoomedOutFar && (
-                <text
-                  x={(getEntityCenter(rel.from).x + getEntityCenter(rel.to).x) / 2}
-                  y={(getEntityCenter(rel.from).y + getEntityCenter(rel.to).y) / 2 - 10}
-                  textAnchor="middle"
-                  fontSize={16 * zoomScale}
-                  fill={isHighlighted ? '#67e8f9' : '#94a3b8'}
-                  fontWeight={isHighlighted ? '600' : '400'}
-                >
-                  {rel.label}
-                </text>
-              )}
+              {/* Relationship label with background */}
+              {!isZoomedOutFar && (() => {
+                const labelX = (getEntityCenter(rel.from).x + getEntityCenter(rel.to).x) / 2;
+                const labelY = (getEntityCenter(rel.from).y + getEntityCenter(rel.to).y) / 2 - 10;
+                const fontSize = 18 * zoomScale;
+                const labelWidth = Math.max(100, rel.label.length * 10) * zoomScale;
+                const labelHeight = 28 * zoomScale;
+                
+                return (
+                  <g>
+                    {/* Background rectangle */}
+                    <rect
+                      x={labelX - labelWidth / 2}
+                      y={labelY - labelHeight / 2}
+                      width={labelWidth}
+                      height={labelHeight}
+                      rx={6 * zoomScale}
+                      fill="rgba(15, 23, 42, 0.95)"
+                      stroke={isHighlighted ? '#06b6d4' : '#475569'}
+                      strokeWidth={isHighlighted ? 2 : 1}
+                    />
+                    {/* Label text */}
+                    <text
+                      x={labelX}
+                      y={labelY + 5}
+                      textAnchor="middle"
+                      fontSize={fontSize}
+                      fill={isHighlighted ? '#67e8f9' : '#e2e8f0'}
+                      fontWeight={isHighlighted ? '700' : '500'}
+                    >
+                      {rel.label}
+                    </text>
+                  </g>
+                );
+              })()}
             </g>
           );
         })}
