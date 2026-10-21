@@ -11,7 +11,7 @@ interface ERDCanvasProps {
 
 export interface ERDCanvasHandle {
   getEntityPositions: () => Record<string, { x: number; y: number }>;
-  getLabelPositions: () => Record<string, { x: number; y: number; scale: number }>;
+  getLabelPositions: () => Record<string, { t: number; scale: number }>;
   getZoom: () => { x: number; y: number; width: number; height: number };
 }
 
@@ -42,7 +42,8 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
   const [draggedLabelId, setDraggedLabelId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [entityPositions, setEntityPositions] = useState<Record<string, { x: number; y: number }>>({});
-  const [labelPositions, setLabelPositions] = useState<Record<string, { x: number; y: number; scale: number }>>({});
+  // t: 0-1 parameter along the curve, scale: label size multiplier
+  const [labelPositions, setLabelPositions] = useState<Record<string, { t: number; scale: number }>>({});
   
   // Initialize entity positions from data
   useEffect(() => {
@@ -52,18 +53,13 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
     });
     setEntityPositions(positions);
     
-    // Initialize label positions at midpoint of relationships
-    const labelPos: Record<string, { x: number; y: number; scale: number }> = {};
+    // Initialize label positions at midpoint (t=0.5) of relationships
+    const labelPos: Record<string, { t: number; scale: number }> = {};
     relationships.forEach(rel => {
-      const fromEntity = entities.find(e => e.id === rel.from);
-      const toEntity = entities.find(e => e.id === rel.to);
-      if (fromEntity && toEntity) {
-        labelPos[rel.id] = {
-          x: (fromEntity.x + toEntity.x + ENTITY_WIDTH) / 2,
-          y: (fromEntity.y + toEntity.y + ENTITY_HEADER_HEIGHT) / 2,
-          scale: 1
-        };
-      }
+      labelPos[rel.id] = {
+        t: 0.5, // Middle of the curve
+        scale: 1
+      };
     });
     setLabelPositions(labelPos);
   }, []);
@@ -71,7 +67,7 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
     getEntityPositions: () => entityPositions,
-    getLabelPositions: () => labelPositions,
+    getLabelPositions: () => labelPositions, // Now returns { t, scale } instead of { x, y, scale }
     getZoom: () => viewBox
   }), [entityPositions, labelPositions, viewBox]);
   
@@ -110,6 +106,58 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
     if (!pos) return { x: 0, y: 0 };
     return { x: pos.x + ENTITY_WIDTH / 2, y: pos.y + ENTITY_HEADER_HEIGHT / 2 };
   }, [entityPositions]);
+
+  // Calculate a point on the relationship curve at parameter t (0-1)
+  const getPointOnCurve = useCallback((rel: ERDRelationship, t: number) => {
+    const from = getEntityCenter(rel.from);
+    const to = getEntityCenter(rel.to);
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    
+    // Calculate control points (same as in getRelationshipPath)
+    let cx1: number, cy1: number, cx2: number, cy2: number;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      cx1 = from.x + dx * 0.4;
+      cy1 = from.y + dy * 0.1;
+      cx2 = to.x - dx * 0.4;
+      cy2 = to.y - dy * 0.1;
+    } else {
+      cx1 = from.x + dx * 0.1;
+      cy1 = from.y + dy * 0.4;
+      cx2 = to.x - dx * 0.1;
+      cy2 = to.y - dy * 0.4;
+    }
+    
+    // Cubic bezier formula: B(t) = (1-t)³P₀ + 3(1-t)²tP₁ + 3(1-t)t²P₂ + t³P₃
+    const t2 = t * t;
+    const t3 = t2 * t;
+    const mt = 1 - t;
+    const mt2 = mt * mt;
+    const mt3 = mt2 * mt;
+    
+    const x = mt3 * from.x + 3 * mt2 * t * cx1 + 3 * mt * t2 * cx2 + t3 * to.x;
+    const y = mt3 * from.y + 3 * mt2 * t * cy1 + 3 * mt * t2 * cy2 + t3 * to.y;
+    
+    return { x, y };
+  }, [getEntityCenter]);
+
+  // Find the closest point on a curve to a given mouse position
+  const findClosestT = useCallback((rel: ERDRelationship, mouseX: number, mouseY: number) => {
+    let bestT = 0.5;
+    let bestDist = Infinity;
+    
+    // Sample the curve at multiple points to find closest
+    for (let t = 0; t <= 1; t += 0.02) {
+      const point = getPointOnCurve(rel, t);
+      const dist = Math.sqrt((point.x - mouseX) ** 2 + (point.y - mouseY) ** 2);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestT = t;
+      }
+    }
+    
+    return bestT;
+  }, [getPointOnCurve]);
 
   // Get relationship path
   const getRelationshipPath = useCallback((rel: ERDRelationship) => {
@@ -194,19 +242,12 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
 
   const handleLabelMouseDown = useCallback((e: React.MouseEvent, labelId: string) => {
     e.stopPropagation();
-    const pos = labelPositions[labelId];
-    if (!pos || !svgRef.current) return;
-    
-    const svg = svgRef.current;
-    const rect = svg.getBoundingClientRect();
-    const svgX = viewBox.x + (e.clientX - rect.left) * (viewBox.width / rect.width);
-    const svgY = viewBox.y + (e.clientY - rect.top) * (viewBox.height / rect.height);
+    if (!svgRef.current) return;
     
     setIsDragging(true);
     setDraggedLabelId(labelId);
-    setDragOffset({ x: svgX - pos.x, y: svgY - pos.y });
     setManualControl(true);
-  }, [labelPositions, viewBox]);
+  }, []);
 
   const handleLabelResize = useCallback((labelId: string, delta: number) => {
     setLabelPositions(prev => ({
@@ -251,14 +292,20 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
       const svgX = viewBox.x + (e.clientX - rect.left) * (viewBox.width / rect.width);
       const svgY = viewBox.y + (e.clientY - rect.top) * (viewBox.height / rect.height);
       
-      setLabelPositions(prev => ({
-        ...prev,
-        [draggedLabelId]: {
-          ...prev[draggedLabelId],
-          x: svgX - dragOffset.x,
-          y: svgY - dragOffset.y
-        }
-      }));
+      // Find the relationship for this label
+      const rel = relationships.find(r => r.id === draggedLabelId);
+      if (rel) {
+        // Find closest point on the curve
+        const t = findClosestT(rel, svgX, svgY);
+        
+        setLabelPositions(prev => ({
+          ...prev,
+          [draggedLabelId]: {
+            ...prev[draggedLabelId],
+            t: t
+          }
+        }));
+      }
     }
   }, [isPanning, isDragging, draggedEntityId, draggedLabelId, viewBox, panStart, dragOffset]);
 
@@ -386,11 +433,13 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
                 markerStart={rel.fromCardinality === '1' ? 'url(#one)' : 'url(#many)'}
                 markerEnd={rel.toCardinality === '1' ? 'url(#one)' : 'url(#many)'}
               />
-              {/* Relationship label with background - draggable and resizable */}
+              {/* Relationship label with background - draggable along curve and resizable */}
               {!isZoomedOutFar && (() => {
                 const labelPos = labelPositions[rel.id];
-                const labelX = labelPos?.x ?? (getEntityCenter(rel.from).x + getEntityCenter(rel.to).x) / 2;
-                const labelY = labelPos?.y ?? (getEntityCenter(rel.from).y + getEntityCenter(rel.to).y) / 2 - 10;
+                const t = labelPos?.t ?? 0.5;
+                const pointOnCurve = getPointOnCurve(rel, t);
+                const labelX = pointOnCurve.x;
+                const labelY = pointOnCurve.y - 10;
                 const labelScale = labelPos?.scale ?? 1;
                 const fontSize = 18 * zoomScale * labelScale;
                 const labelWidth = Math.max(100, rel.label.length * 10) * zoomScale * labelScale;
