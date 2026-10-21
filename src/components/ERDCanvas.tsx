@@ -20,7 +20,7 @@ export interface ERDCanvasHandle {
 const ENTITY_WIDTH = 320;
 const ENTITY_HEADER_HEIGHT = 60;
 const ATTRIBUTE_HEIGHT = 36;
-const BASE_VIEWBOX_WIDTH = 2700;
+const BASE_VIEWBOX_WIDTH = 2698.1860928977217;
 
 const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDCanvas({
   entities,
@@ -29,7 +29,12 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
   onSelectEntity,
 }, ref) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [viewBox, setViewBox] = useState({ x: -50, y: 0, width: 2700, height: 1200 });
+  const [viewBox, setViewBox] = useState({
+    x: -1159.1013934973016,
+    y: -524.8367341128484,
+    width: 2698.1860928977217,
+    height: 1199.1938190656551
+  });
   const viewBoxRef = useRef(viewBox);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
@@ -47,7 +52,17 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
   // t: 0-1 parameter along the curve, scale: label size multiplier
   const [labelPositions, setLabelPositions] = useState<Record<string, { t: number; scale: number }>>({});
   // Saved zoom levels per entity
-  const [savedZooms, setSavedZooms] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({});
+  const [savedZooms, setSavedZooms] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({
+    "users": { x: -1380.7370466046193, y: -293.3294718842821, width: 2645.3809454788566, height: 1175.7248646572707 },
+    "academic_terms": { x: -869.3876600229457, y: -327.90961496243705, width: 2645.3809454788566, height: 1175.7248646572707 },
+    "sessions": { x: -977.9973431871107, y: -369.99781285214357, width: 1405.8638950462293, height: 624.8283977983247 },
+    "evaluation_ratings": { x: -866.2001946416035, y: 27.405652065336113, width: 2174.9410078735673, height: 966.6404479438085 },
+    "evaluation_criteria": { x: -105.39512338922646, y: 84.90861109739012, width: 1426.9787952658476, height: 634.2127978959328 },
+    "evaluations": { x: -1347.9652123004382, y: -352.7047993237943, width: 2780.7779796719583, height: 1235.901324298649 },
+    "audit_logs": { x: -1762.1434512108951, y: -299.9823723758725, width: 2477.673179887715, height: 1101.1880799500964 },
+    "tna_snapshots": { x: -1083.1031509238292, y: -319.6270966256774, width: 2698.1860928977217, height: 1199.1938190656551 },
+    "release_signatures": { x: -1245.530767404386, y: -326.03989779715147, width: 2698.1860928977217, height: 1199.1938190656551 }
+  });
   
   // Initialize entity positions from data
   useEffect(() => {
@@ -57,14 +72,20 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
     });
     setEntityPositions(positions);
     
-    // Initialize label positions at midpoint (t=0.5) of relationships
-    const labelPos: Record<string, { t: number; scale: number }> = {};
-    relationships.forEach(rel => {
-      labelPos[rel.id] = {
-        t: 0.5, // Middle of the curve
-        scale: 1
-      };
-    });
+    // Initialize label positions from saved data
+    const labelPos: Record<string, { t: number; scale: number }> = {
+      "r1": { t: 0.5800000000000002, scale: 1 },
+      "r2": { t: 0.5000000000000001, scale: 1 },
+      "r3": { t: 0.7400000000000003, scale: 1 },
+      "r4": { t: 0.5, scale: 1 },
+      "r5": { t: 0.5600000000000002, scale: 1 },
+      "r6": { t: 0.5000000000000001, scale: 1 },
+      "r7": { t: 0.48000000000000015, scale: 1 },
+      "r8": { t: 0.46000000000000013, scale: 1 },
+      "r9": { t: 0.5200000000000001, scale: 1 },
+      "r10": { t: 0.36000000000000004, scale: 1 },
+      "r11": { t: 0.6400000000000002, scale: 1 }
+    };
     setLabelPositions(labelPos);
   }, []);
 
@@ -223,7 +244,12 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
 
   const resetView = useCallback(() => {
     setManualControl(true);
-    setViewBox({ x: -50, y: 0, width: 2700, height: 1200 });
+    setViewBox({
+      x: -1159.1013934973016,
+      y: -524.8367341128484,
+      width: 2698.1860928977217,
+      height: 1199.1938190656551
+    });
   }, []);
 
   // Pan handling
