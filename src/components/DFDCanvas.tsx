@@ -566,6 +566,9 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(function DFDC
           <marker id="arrowhead-return" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
             <polygon points="0 0, 10 4, 0 8" fill="#10b981" />
           </marker>
+          <marker id="arrowhead-return-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="rgba(16,185,129,0.3)" />
+          </marker>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
           </pattern>
@@ -614,18 +617,81 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(function DFDC
                 className="transition-all duration-500"
               />
               {/* Return path (bidirectional flow - data coming back) */}
-              {(isCurrent || active) && (
-                <path
-                  d={getReturnPath(flow)}
-                  fill="none"
-                  stroke={isCurrent ? '#10b981' : '#10b98166'}
-                  strokeWidth={isCurrent ? 2.5 : 1.5}
-                  strokeDasharray="6 4"
-                  markerEnd="url(#arrowhead-return)"
-                  className="transition-all duration-500"
-                  opacity={isCurrent ? 0.9 : 0.5}
-                />
-              )}
+              <path
+                d={getReturnPath(flow)}
+                fill="none"
+                stroke={
+                  isCurrent ? '#10b981' :
+                  active ? '#10b981aa' :
+                  isHovered ? '#10b98166' :
+                  'rgba(16,185,129,0.15)'
+                }
+                strokeWidth={isCurrent ? 3 : isHovered ? 2 : active ? 1.8 : 0.8}
+                strokeDasharray="6 4"
+                markerEnd={isCurrent ? 'url(#arrowhead-return)' : active ? 'url(#arrowhead-return)' : 'url(#arrowhead-return-dim)'}
+                className="transition-all duration-500"
+                opacity={isCurrent ? 0.95 : active ? 0.7 : isHovered ? 0.5 : 0.3}
+              />
+              {/* Return flow label */}
+              {isCurrent && !isZoomedOutFar && (() => {
+                const from = getNodeCenter(flow.from);
+                const to = getNodeCenter(flow.to);
+                const dx = to.x - from.x;
+                const dy = to.y - from.y;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                const offset = 15;
+                const nx = -dy / len * offset;
+                const ny = dx / len * offset;
+                const midX = (from.x + to.x) / 2 + nx;
+                const midY = (from.y + to.y) / 2 + ny;
+                
+                // Determine return data type
+                let returnLabel = 'RESPONSE';
+                let returnColor = '#10b981';
+                const labelLower = flow.label.toLowerCase();
+                
+                if (labelLower.includes('credential') || labelLower.includes('login')) {
+                  returnLabel = 'AUTH TOKEN';
+                  returnColor = '#8b5cf6';
+                } else if (labelLower.includes('session')) {
+                  returnLabel = 'SESSION ID';
+                  returnColor = '#8b5cf6';
+                } else if (labelLower.includes('evaluation') || labelLower.includes('query')) {
+                  returnLabel = 'DATA';
+                  returnColor = '#3b82f6';
+                } else if (labelLower.includes('audit') || labelLower.includes('verify')) {
+                  returnLabel = 'CONFIRM';
+                  returnColor = '#6366f1';
+                } else if (labelLower.includes('report')) {
+                  returnLabel = 'REPORT';
+                  returnColor = '#0ea5e9';
+                }
+                
+                return (
+                  <g>
+                    <rect
+                      x={midX - 35}
+                      y={midY - 12}
+                      width={70}
+                      height={20}
+                      rx={4}
+                      fill={returnColor}
+                      opacity="0.85"
+                    />
+                    <text
+                      x={midX}
+                      y={midY + 2}
+                      textAnchor="middle"
+                      fontSize={10}
+                      fontWeight="600"
+                      fill="white"
+                      className="pointer-events-none"
+                    >
+                      {returnLabel}
+                    </text>
+                  </g>
+                );
+              })()}
               {/* Data direction and type indicators for current flow (hide when zoomed out) */}
               {isCurrent && !isZoomedOutMedium && (() => {
                 const fromNode = nodes.find(n => n.id === flow.from);
@@ -716,9 +782,15 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(function DFDC
               })()}
               {/* Animated particle for current flow - optimized for performance */}
               {isCurrent && (
-                <circle r="5" fill="#22d3ee" opacity="0.9">
-                  <animateMotion dur="2s" repeatCount="indefinite" path={getFlowPath(flow)} />
-                </circle>
+                <>
+                  <circle r="5" fill="#22d3ee" opacity="0.9">
+                    <animateMotion dur="2s" repeatCount="indefinite" path={getFlowPath(flow)} />
+                  </circle>
+                  {/* Return flow particle */}
+                  <circle r="4" fill="#10b981" opacity="0.8">
+                    <animateMotion dur="2.5s" repeatCount="indefinite" path={getReturnPath(flow)} />
+                  </circle>
+                </>
               )}
               {/* Flow label on hover or when current - scaled with view (hide when zoomed out far) */}
               {!isZoomedOutFar && (isCurrent || isHovered) && (() => {
