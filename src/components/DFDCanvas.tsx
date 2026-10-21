@@ -433,25 +433,25 @@ export default function DFDCanvas({
                 // Position labels along the path
                 const midX = (getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2;
                 const midY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2;
-                const labelOffset = 25 * zoomScale;
+                const labelOffset = 25;
                 
                 return (
                   <g>
                     {/* Direction badge */}
                     <rect
-                      x={midX - 45 * zoomScale}
-                      y={midY - labelOffset - 10 * zoomScale}
-                      width={40 * zoomScale}
-                      height={16 * zoomScale}
-                      rx={4 * zoomScale}
+                      x={midX - 45}
+                      y={midY - labelOffset - 10}
+                      width={40}
+                      height={16}
+                      rx={4}
                       fill={directionColor}
                       opacity="0.9"
                     />
                     <text
-                      x={midX - 25 * zoomScale}
-                      y={midY - labelOffset - 1 * zoomScale}
+                      x={midX - 25}
+                      y={midY - labelOffset - 1}
                       textAnchor="middle"
-                      fontSize={8 * zoomScale}
+                      fontSize={8}
                       fontWeight="700"
                       fill="white"
                       className="pointer-events-none"
@@ -461,19 +461,19 @@ export default function DFDCanvas({
                     
                     {/* Data type badge */}
                     <rect
-                      x={midX + 5 * zoomScale}
-                      y={midY - labelOffset - 10 * zoomScale}
-                      width={50 * zoomScale}
-                      height={16 * zoomScale}
-                      rx={4 * zoomScale}
+                      x={midX + 5}
+                      y={midY - labelOffset - 10}
+                      width={50}
+                      height={16}
+                      rx={4}
                       fill={dataTypeColor}
                       opacity="0.85"
                     />
                     <text
-                      x={midX + 30 * zoomScale}
-                      y={midY - labelOffset - 1 * zoomScale}
+                      x={midX + 30}
+                      y={midY - labelOffset - 1}
                       textAnchor="middle"
-                      fontSize={7 * zoomScale}
+                      fontSize={7}
                       fontWeight="600"
                       fill="white"
                       className="pointer-events-none"
@@ -506,15 +506,15 @@ export default function DFDCanvas({
                   </circle>
                 </>
               )}
-              {/* Flow label on hover or when current - counter-scaled (hide when zoomed out far) */}
+              {/* Flow label on hover or when current - scaled with view (hide when zoomed out far) */}
               {!isZoomedOutFar && (isCurrent || isHovered) && (() => {
                 const labelX = (getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2;
-                const labelY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 + 35 * zoomScale;
-                const flowLabelSize = 11 * zoomScale;
-                const descSize = 9 * zoomScale;
-                const boxHeight = 40 * zoomScale;
+                const labelY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 + 35;
+                const flowLabelSize = 11;
+                const descSize = 9;
+                const boxHeight = 40;
                 // Estimate text width based on character count
-                const estimatedWidth = Math.max(120, Math.max(flow.label.length, flow.description.length) * 5.5) * zoomScale;
+                const estimatedWidth = Math.max(120, Math.max(flow.label.length, flow.description.length) * 5.5);
                 
                 return (
                   <g>
@@ -524,15 +524,15 @@ export default function DFDCanvas({
                       y={labelY - boxHeight / 2}
                       width={estimatedWidth}
                       height={boxHeight}
-                      rx={6 * zoomScale}
+                      rx={6}
                       fill="rgba(15,23,42,0.95)"
                       stroke={isCurrent ? '#22d3ee55' : '#47556955'}
-                      strokeWidth={1 * zoomScale}
+                      strokeWidth={1}
                     />
                     {/* Flow label */}
                     <text
                       x={labelX}
-                      y={labelY - 6 * zoomScale}
+                      y={labelY - 6}
                       textAnchor="middle"
                       className="font-bold pointer-events-none"
                       fontSize={flowLabelSize}
@@ -543,7 +543,7 @@ export default function DFDCanvas({
                     {/* Flow description */}
                     <text
                       x={labelX}
-                      y={labelY + 8 * zoomScale}
+                      y={labelY + 8}
                       textAnchor="middle"
                       className="pointer-events-none"
                       fontSize={descSize}
@@ -589,16 +589,12 @@ export default function DFDCanvas({
             ? 0.9
             : 1;
 
-          // Font sizes per tier - larger base sizes for readability
-          const iconSize = isDimmed ? 16 : isCurrent ? 32 : 24;
-          const labelSize = isDimmed ? 11 : isCurrent ? 20 : 16;
-          const typeSize = isDimmed ? 7 : isCurrent ? 11 : 9;
-
           // Anchor point for scaling (center of the node)
           const cx = node.x + NODE_WIDTH / 2;
           const cy = node.y + NODE_HEIGHT / 2;
 
           // Combined scale: node tier scale × zoom counter-scale
+          // This scales the entire node (shape + content) proportionally
           const totalScale = nodeScale * zoomScale;
 
           return (
@@ -618,7 +614,7 @@ export default function DFDCanvas({
                 opacity: nodeOpacity,
                 transition: 'opacity 0.5s ease, transform 0.5s ease',
                 transformOrigin: `${cx}px ${cy}px`,
-                transform: `scale(${nodeScale})`,
+                transform: `scale(${totalScale})`,
               }}
             >
               {/* Outer glow for current-step nodes */}
@@ -724,7 +720,7 @@ export default function DFDCanvas({
               {(() => {
                 const IconComponent = iconMap[node.icon];
                 if (!IconComponent) return null;
-                const iconSizePx = iconSize * zoomScale;
+                const iconSizePx = 24; // Base size, will be scaled by transform
                 return (
                   <foreignObject
                     x={cx - iconSizePx / 2}
@@ -747,17 +743,16 @@ export default function DFDCanvas({
                 );
               })()}
 
-              {/* Label - counter-scaled for zoom, sized by tier */}
+              {/* Label - sized by tier, scaled by parent group */}
               {!isZoomedOutFar && (
                 <text
                   x={cx}
                   y={node.y + 40}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  fontSize={labelSize * zoomScale}
+                  fontSize={14}
                   fontWeight={isCurrent ? '700' : '600'}
                   fill={isCurrent ? 'white' : isDimmed ? '#94a3b8' : 'white'}
-                  transform={`translate(${cx}, ${node.y + 40}) scale(${zoomScale}) translate(${-cx}, ${-node.y - 40})`}
                   style={{
                     textShadow: isCurrent ? `0 0 8px ${node.color}` : 'none',
                   }}
@@ -766,16 +761,15 @@ export default function DFDCanvas({
                 </text>
               )}
 
-              {/* Type badge - counter-scaled for zoom, sized by tier */}
+              {/* Type badge - sized by tier, scaled by parent group */}
               {!isZoomedOutMedium && (
                 <text
                   x={cx}
                   y={node.y + 52}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  fontSize={typeSize * zoomScale}
+                  fontSize={8}
                   fill={isCurrent ? '#cbd5e1' : '#64748b'}
-                  transform={`translate(${cx}, ${node.y + 52}) scale(${zoomScale}) translate(${-cx}, ${-node.y - 52})`}
                 >
                   {node.type === 'external' ? 'External Entity' : node.type === 'process' ? 'Process' : 'Data Store'}
                 </text>
@@ -788,10 +782,9 @@ export default function DFDCanvas({
                   y={node.y + NODE_HEIGHT + 18}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  fontSize={9 * zoomScale}
+                  fontSize={9}
                   fontWeight="600"
                   fill="#06b6d4"
-                  transform={`translate(${cx}, ${node.y + NODE_HEIGHT + 18}) scale(${zoomScale}) translate(${-cx}, ${-node.y - NODE_HEIGHT - 18})`}
                 >
                   Click to login →
                 </text>
