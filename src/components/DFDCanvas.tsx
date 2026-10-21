@@ -21,7 +21,7 @@ interface DFDCanvasProps {
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 120;
-const BASE_VIEWBOX_WIDTH = 1900;
+const BASE_VIEWBOX_WIDTH = 2100;
 
 // Icon mapping
 const iconMap: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
@@ -56,7 +56,7 @@ export default function DFDCanvas({
   onAuthNodeClick,
 }: DFDCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [viewBox, setViewBox] = useState({ x: -50, y: 0, width: 2000, height: 1200 });
+  const [viewBox, setViewBox] = useState({ x: -50, y: 0, width: 2200, height: 1200 });
   const viewBoxRef = useRef(viewBox);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
@@ -208,7 +208,7 @@ export default function DFDCanvas({
 
   const resetView = useCallback(() => {
     setManualControl(true);
-    setViewBox({ x: -50, y: 0, width: 2000, height: 1200 });
+    setViewBox({ x: -50, y: 0, width: 2200, height: 1200 });
   }, []);
 
   // Pan handling
