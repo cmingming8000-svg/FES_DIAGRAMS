@@ -18,6 +18,7 @@ export interface ERDEntity {
   y: number;
   color: string;
   attributes: ERDAttribute[];
+  tourOrder?: number;
 }
 
 export interface ERDRelationship {
@@ -39,6 +40,7 @@ export const entities: ERDEntity[] = [
     x: -286.0231255951609,
     y: -255.79459110909988,
     color: '#3b82f6',
+    tourOrder: 1,
     attributes: [
       { name: 'id', type: 'uuid', isPrimaryKey: true, isForeignKey: false, isRequired: true, description: 'Primary key' },
       { name: 'institutional_id', type: 'string', isPrimaryKey: false, isForeignKey: false, isRequired: true, description: 'e.g., C24-001, M001' },
@@ -56,6 +58,7 @@ export const entities: ERDEntity[] = [
     x: 207.32303632614025,
     y: -302.53480465521227,
     color: '#10b981',
+    tourOrder: 6,
     attributes: [
       { name: 'id', type: 'uuid', isPrimaryKey: true, isForeignKey: false, isRequired: true },
       { name: 'name', type: 'string', isPrimaryKey: false, isForeignKey: false, isRequired: true, description: 'e.g., "Fall 2024"' },
@@ -69,9 +72,10 @@ export const entities: ERDEntity[] = [
     id: 'evaluation_criteria',
     label: 'evaluation_criteria',
     description: 'Evaluation domains and criteria',
-    x: 579.4722763677096,
+    x: 582.3752086590894,
     y: 245.52820635832649,
     color: '#8b5cf6',
+    tourOrder: 5,
     attributes: [
       { name: 'id', type: 'uuid', isPrimaryKey: true, isForeignKey: false, isRequired: true },
       { name: 'domain', type: 'string', isPrimaryKey: false, isForeignKey: false, isRequired: true, description: 'Teaching, Assessment, etc.' },
@@ -84,9 +88,10 @@ export const entities: ERDEntity[] = [
     id: 'evaluations',
     label: 'evaluations',
     description: 'Student evaluations of faculty',
-    x: -601.0202710222951,
-    y: 521.608411215714,
+    x: -605.999985270446,
+    y: 480.9565841844594,
     color: '#ef4444',
+    tourOrder: 3,
     attributes: [
       { name: 'id', type: 'uuid', isPrimaryKey: true, isForeignKey: false, isRequired: true },
       { name: 'student_id', type: 'uuid', isPrimaryKey: false, isForeignKey: true, references: 'users', isRequired: true },
@@ -104,6 +109,7 @@ export const entities: ERDEntity[] = [
     x: 63.00336893520944,
     y: 247.42678112864212,
     color: '#f59e0b',
+    tourOrder: 4,
     attributes: [
       { name: 'id', type: 'uuid', isPrimaryKey: true, isForeignKey: false, isRequired: true },
       { name: 'evaluation_id', type: 'uuid', isPrimaryKey: false, isForeignKey: true, references: 'evaluations', isRequired: true },
@@ -116,8 +122,9 @@ export const entities: ERDEntity[] = [
     label: 'tna_snapshots',
     description: 'Training Needs Analysis results',
     x: 107.6079688995826,
-    y: 527.7344315532914,
+    y: 511.0567589250843,
     color: '#14b8a6',
+    tourOrder: 7,
     attributes: [
       { name: 'id', type: 'uuid', isPrimaryKey: true, isForeignKey: false, isRequired: true },
       { name: 'faculty_id', type: 'uuid', isPrimaryKey: false, isForeignKey: true, references: 'users', isRequired: true },
@@ -131,9 +138,10 @@ export const entities: ERDEntity[] = [
     id: 'audit_logs',
     label: 'audit_logs',
     description: 'Immutable audit trail (append-only)',
-    x: -1003.0152051278837,
-    y: 433.1167193055237,
+    x: -834.626942170978,
+    y: 22.69744433118194,
     color: '#6366f1',
+    tourOrder: 9,
     attributes: [
       { name: 'id', type: 'uuid', isPrimaryKey: true, isForeignKey: false, isRequired: true },
       { name: 'action', type: 'string', isPrimaryKey: false, isForeignKey: false, isRequired: true },
@@ -152,6 +160,7 @@ export const entities: ERDEntity[] = [
     x: -845.9907797396279,
     y: -255.02299236276215,
     color: '#475569',
+    tourOrder: 2,
     attributes: [
       { name: 'id', type: 'uuid', isPrimaryKey: true, isForeignKey: false, isRequired: true },
       { name: 'user_id', type: 'uuid', isPrimaryKey: false, isForeignKey: true, references: 'users', isRequired: true },
@@ -165,8 +174,9 @@ export const entities: ERDEntity[] = [
     label: 'release_signatures',
     description: 'HR/QA e-signatures for releases',
     x: -248.40741164150745,
-    y: 532.0515365714497,
+    y: 515.3738639432428,
     color: '#ec4899',
+    tourOrder: 8,
     attributes: [
       { name: 'id', type: 'uuid', isPrimaryKey: true, isForeignKey: false, isRequired: true },
       { name: 'term_id', type: 'uuid', isPrimaryKey: false, isForeignKey: true, references: 'academic_terms', isRequired: true },

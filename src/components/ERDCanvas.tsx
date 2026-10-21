@@ -30,10 +30,10 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
 }, ref) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [viewBox, setViewBox] = useState({
-    x: -1159.1013934973016,
-    y: -524.8367341128484,
-    width: 2698.1860928977217,
-    height: 1199.1938190656551
+    x: -1267.5791392420338,
+    y: -231.00340884071545,
+    width: 2835.3329298171025,
+    height: 1260.1479688076024
   });
   const viewBoxRef = useRef(viewBox);
   const [isPanning, setIsPanning] = useState(false);
@@ -53,15 +53,15 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
   const [labelPositions, setLabelPositions] = useState<Record<string, { t: number; scale: number }>>({});
   // Saved zoom levels per entity
   const [savedZooms, setSavedZooms] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({
-    "users": { x: -1380.7370466046193, y: -293.3294718842821, width: 2645.3809454788566, height: 1175.7248646572707 },
-    "academic_terms": { x: -869.3876600229457, y: -327.90961496243705, width: 2645.3809454788566, height: 1175.7248646572707 },
-    "sessions": { x: -977.9973431871107, y: -369.99781285214357, width: 1405.8638950462293, height: 624.8283977983247 },
-    "evaluation_ratings": { x: -866.2001946416035, y: 27.405652065336113, width: 2174.9410078735673, height: 966.6404479438085 },
-    "evaluation_criteria": { x: -105.39512338922646, y: 84.90861109739012, width: 1426.9787952658476, height: 634.2127978959328 },
-    "evaluations": { x: -1347.9652123004382, y: -352.7047993237943, width: 2780.7779796719583, height: 1235.901324298649 },
-    "audit_logs": { x: -1762.1434512108951, y: -299.9823723758725, width: 2477.673179887715, height: 1101.1880799500964 },
-    "tna_snapshots": { x: -1083.1031509238292, y: -319.6270966256774, width: 2698.1860928977217, height: 1199.1938190656551 },
-    "release_signatures": { x: -1245.530767404386, y: -326.03989779715147, width: 2698.1860928977217, height: 1199.1938190656551 }
+    "users": { x: -1213.6384947376102, y: -200.82613784515377, width: 2142.0386736157366, height: 952.0171882736618 },
+    "academic_terms": { x: -1181.1746330202216, y: -255.45062279995585, width: 2251.6734254763974, height: 1000.7437446561779 },
+    "sessions": { x: -1015.7597734733204, y: -323.7318424739222, width: 1227.285034764355, height: 545.4600154508249 },
+    "evaluation_ratings": { x: -729.956067123643, y: 144.2591566831623, width: 1805.6169198895234, height: 802.4964088397892 },
+    "evaluation_criteria": { x: -172.9130663232717, y: 151.57861164728413, width: 1404.919411155837, height: 624.4086271803727 },
+    "evaluations": { x: -1265.24150134656, y: -252.1635084566542, width: 2251.6734254763974, height: 1000.7437446561779 },
+    "audit_logs": { x: -1107.2546117195434, y: -285.847485282751, width: 1440.9084647556515, height: 640.4037621136234 },
+    "tna_snapshots": { x: -935.1554154181415, y: -244.49357498895034, width: 2251.6734254763974, height: 1000.7437446561779 },
+    "release_signatures": { x: -984.6065144336351, y: -249.9720988944531, width: 2251.6734254763974, height: 1000.7437446561779 }
   });
   
   // Initialize entity positions from data
@@ -81,7 +81,7 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
       "r5": { t: 0.5600000000000002, scale: 1 },
       "r6": { t: 0.5000000000000001, scale: 1 },
       "r7": { t: 0.48000000000000015, scale: 1 },
-      "r8": { t: 0.46000000000000013, scale: 1 },
+      "r8": { t: 0.5200000000000001, scale: 1 },
       "r9": { t: 0.5200000000000001, scale: 1 },
       "r10": { t: 0.36000000000000004, scale: 1 },
       "r11": { t: 0.6400000000000002, scale: 1 }
@@ -245,10 +245,10 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
   const resetView = useCallback(() => {
     setManualControl(true);
     setViewBox({
-      x: -1159.1013934973016,
-      y: -524.8367341128484,
-      width: 2698.1860928977217,
-      height: 1199.1938190656551
+      x: -1267.5791392420338,
+      y: -231.00340884071545,
+      width: 2835.3329298171025,
+      height: 1260.1479688076024
     });
   }, []);
 
@@ -378,6 +378,40 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
     return () => svg.removeEventListener('wheel', handleWheel);
   }, []);
 
+  // Auto-zoom to entity when selected
+  useEffect(() => {
+    if (!selectedEntity || manualControl) return;
+    
+    const savedZoom = savedZooms[selectedEntity];
+    if (!savedZoom) return;
+    
+    // Animate to saved zoom
+    const duration = 600;
+    const startTime = performance.now();
+    const startViewBox = { ...viewBoxRef.current };
+    
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function (ease-out-cubic)
+      const eased = 1 - Math.pow(1 - progress, 3);
+      
+      setViewBox({
+        x: startViewBox.x + (savedZoom.x - startViewBox.x) * eased,
+        y: startViewBox.y + (savedZoom.y - startViewBox.y) * eased,
+        width: startViewBox.width + (savedZoom.width - startViewBox.width) * eased,
+        height: startViewBox.height + (savedZoom.height - startViewBox.height) * eased
+      });
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [selectedEntity, manualControl, savedZooms]);
+
   // Get related entities for highlighting
   const getRelatedEntities = useCallback((entityId: string) => {
     const related = new Set<string>();
@@ -395,34 +429,6 @@ const ERDCanvas = memo(forwardRef<ERDCanvasHandle, ERDCanvasProps>(function ERDC
 
   return (
     <div className="relative w-full h-full">
-      {/* Zoom controls */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col gap-1 items-center">
-        <button
-          onClick={zoomIn}
-          className="w-8 h-8 rounded-lg bg-slate-800/80 backdrop-blur border border-white/10 text-white text-sm hover:bg-slate-700 transition-colors flex items-center justify-center"
-          title="Zoom In"
-        >
-          +
-        </button>
-        <div className="px-2 py-0.5 rounded text-[10px] text-slate-400 bg-slate-800/60 backdrop-blur border border-white/5 font-mono">
-          {Math.round((1 / rawZoomScale) * 100)}%
-        </div>
-        <button
-          onClick={zoomOut}
-          className="w-8 h-8 rounded-lg bg-slate-800/80 backdrop-blur border border-white/10 text-white text-sm hover:bg-slate-700 transition-colors flex items-center justify-center"
-          title="Zoom Out"
-        >
-          −
-        </button>
-        <button
-          onClick={resetView}
-          className="w-8 h-8 rounded-lg bg-slate-800/80 backdrop-blur border border-white/10 text-white text-xs hover:bg-slate-700 transition-colors flex items-center justify-center mt-1"
-          title="Reset View"
-        >
-          ⟲
-        </button>
-      </div>
-
       {/* SVG Canvas */}
       <svg
         ref={svgRef}
