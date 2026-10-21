@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import DFDCanvas, { DFDCanvasHandle } from './components/DFDCanvas';
+import DFDCanvas from './components/DFDCanvas';
 import ERDCanvas, { ERDCanvasHandle } from './components/ERDCanvas';
 import InfoPanel from './components/InfoPanel';
 import ERDInfoPanel from './components/ERDInfoPanel';
@@ -21,8 +21,7 @@ function App() {
   // ERD state
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
   
-  // Refs to access canvas state
-  const dfdCanvasRef = useRef<DFDCanvasHandle>(null);
+  // Ref to access ERD canvas state
   const erdCanvasRef = useRef<ERDCanvasHandle>(null);
 
   // Get flows relevant to the selected role
@@ -114,11 +113,11 @@ function App() {
         setCurrentStep((prev) => Math.max(prev - 1, 1));
       } else if (e.key === 'Escape') {
         handleReset();
-      } else if (e.ctrlKey && e.altKey && e.code === 'Space') {
+      } else if (viewMode === 'erd' && e.ctrlKey && e.altKey && e.code === 'Space') {
         // Ctrl+Alt+Space: Save current zoom for selected entity (ERD mode only)
         e.preventDefault();
         
-        if (viewMode === 'erd' && selectedEntity) {
+        if (selectedEntity) {
           erdCanvasRef.current?.saveZoomForEntity(selectedEntity);
           
           // Show feedback
@@ -150,7 +149,7 @@ function App() {
             toast.style.animation = 'fadeOut 0.3s ease-out';
             setTimeout(() => document.body.removeChild(toast), 300);
           }, 2000);
-        } else if (viewMode === 'erd' && !selectedEntity) {
+        } else {
           // Show warning if no entity selected
           const toast = document.createElement('div');
           toast.style.cssText = `
@@ -174,46 +173,26 @@ function App() {
           
           setTimeout(() => document.body.removeChild(toast), 2000);
         }
-      } else if (e.ctrlKey && e.shiftKey && e.code === 'Space') {
+      } else if (viewMode === 'erd' && e.ctrlKey && e.shiftKey && e.code === 'Space') {
+        // Ctrl+Shift+Space: Export all ERD data (ERD mode only)
         e.preventDefault();
         
-        // Get data based on current mode
-        let dataToSave: any;
-        let fileName: string;
-        let title: string;
+        // ERD mode - save entity positions, label positions, zoom, saved zooms, and selected entity
+        const entityPositions = erdCanvasRef.current?.getEntityPositions() || {};
+        const labelPositions = erdCanvasRef.current?.getLabelPositions() || {};
+        const zoom = erdCanvasRef.current?.getZoom() || { x: 0, y: 0, width: 2700, height: 1200 };
+        const savedZooms = erdCanvasRef.current?.getSavedZooms() || {};
         
-        if (viewMode === 'dfd') {
-          // DFD mode - save node positions and zoom
-          const positions = dfdCanvasRef.current?.getPositions() || {};
-          const zoom = dfdCanvasRef.current?.getZoom() || { x: 0, y: 0, width: 2700, height: 1200 };
-          
-          dataToSave = {
-            mode: 'dfd',
-            positions,
-            zoom,
-            selectedRole,
-            currentStep
-          };
-          fileName = 'dfd-positions.json';
-          title = 'DFD Node Positions Saved';
-        } else {
-          // ERD mode - save entity positions, label positions, zoom, saved zooms, and selected entity
-          const entityPositions = erdCanvasRef.current?.getEntityPositions() || {};
-          const labelPositions = erdCanvasRef.current?.getLabelPositions() || {};
-          const zoom = erdCanvasRef.current?.getZoom() || { x: 0, y: 0, width: 2700, height: 1200 };
-          const savedZooms = erdCanvasRef.current?.getSavedZooms() || {};
-          
-          dataToSave = {
-            mode: 'erd',
-            entityPositions,
-            labelPositions,
-            zoom,
-            savedZooms, // Include saved zooms per entity
-            selectedEntity
-          };
-          fileName = 'erd-positions.json';
-          title = 'ERD Positions Saved';
-        }
+        const dataToSave = {
+          mode: 'erd',
+          entityPositions,
+          labelPositions,
+          zoom,
+          savedZooms,
+          selectedEntity
+        };
+        const fileName = 'erd-positions.json';
+        const title = 'ERD Positions Saved';
         
         // Create a downloadable JSON file
         const positionsJson = JSON.stringify(dataToSave, null, 2);
@@ -358,25 +337,33 @@ function App() {
                   ↺ Reset View
                 </motion.button>
               )}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-900/30 backdrop-blur border border-cyan-500/30 text-xs text-cyan-300">
-                {viewMode === 'erd' && (
-                  <>
-                    <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Ctrl</kbd>
-                    <span>+</span>
-                    <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Alt</kbd>
-                    <span>+</span>
-                    <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Space</kbd>
-                    <span className="ml-1">Save Zoom</span>
-                    <span className="mx-2 text-cyan-500">|</span>
-                  </>
-                )}
-                <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Ctrl</kbd>
-                <span>+</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Shift</kbd>
-                <span>+</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Space</kbd>
-                <span className="ml-1">Save & Share Positions</span>
-              </div>
+              {viewMode === 'erd' && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-900/30 backdrop-blur border border-cyan-500/30 text-xs text-cyan-300">
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Ctrl</kbd>
+                  <span>+</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Alt</kbd>
+                  <span>+</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Space</kbd>
+                  <span className="ml-1">Save Zoom</span>
+                  <span className="mx-2 text-cyan-500">|</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Ctrl</kbd>
+                  <span>+</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Shift</kbd>
+                  <span>+</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Space</kbd>
+                  <span className="ml-1">Export All</span>
+                </div>
+              )}
+              {viewMode === 'dfd' && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-900/30 backdrop-blur border border-cyan-500/30 text-xs text-cyan-300">
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Ctrl</kbd>
+                  <span>+</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Shift</kbd>
+                  <span>+</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Space</kbd>
+                  <span className="ml-1">Save Positions</span>
+                </div>
+              )}
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 Interactive Mode
@@ -430,7 +417,6 @@ function App() {
 
                 {/* DFD Canvas */}
                 <DFDCanvas
-                  ref={dfdCanvasRef}
                   nodes={nodes}
                   flows={flows}
                   selectedNode={selectedNode}
