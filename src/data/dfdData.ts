@@ -191,7 +191,7 @@ export const nodes: DFDNode[] = [
   {
     id: 'admin-dashboard',
     label: 'Admin Dashboard',
-    description: 'HR/QA system management',
+    description: 'HR/QA system & account management',
     type: 'process',
     x: 1306.3373203062952,
     y: 725.8114973262033,
@@ -199,12 +199,12 @@ export const nodes: DFDNode[] = [
     icon: 'Settings',
     roles: ['hr_qa'],
     details: [
-      'Manage academic terms',
-      'Configure evaluation criteria',
-      'Manage faculty data & accounts',
-      'View TNA analytics',
-      'Monitor audit trail',
-      'Activate/deactivate/unlock accounts'
+      'Manage academic terms (create/activate/archive)',
+      'Configure evaluation criteria & indicators',
+      'Account management (activate/deactivate/unlock)',
+      'Bulk import accounts & send invitations',
+      'View TNA analytics (department & institution)',
+      'Monitor audit trail & verify hash chain'
     ]
   },
 
@@ -212,7 +212,7 @@ export const nodes: DFDNode[] = [
   {
     id: 'verify-release',
     label: 'Verify & Release',
-    description: 'HR/QA evaluation release (e-signed)',
+    description: 'HR/QA evaluation release & e-signatures',
     type: 'process',
     x: 2125.497769048424,
     y: 221.18386186712087,
@@ -220,18 +220,18 @@ export const nodes: DFDNode[] = [
     icon: 'CheckCircle',
     roles: ['hr_qa', 'faculty', 'dean'],
     details: [
-      'HR/QA reviews all submissions',
-      'E-signs release (RA 8792 compliant)',
+      'HR/QA e-signs release (RA 8792)',
+      'Faculty e-signs acknowledgment',
+      'Dean e-signs oversight (7-day window)',
       'Tracking ID: FES-[timestamp]-[hash]',
-      'Immediately grants faculty access',
-      'Closes term to new submissions',
-      'SHA-256 document hash stored'
+      'SHA-256 document hash stored',
+      'PDF receipts generated server-side'
     ]
   },
   {
     id: 'faculty-dashboard',
     label: 'Faculty Dashboard',
-    description: 'Personal metrics & development',
+    description: 'Personal metrics & acknowledgment',
     type: 'process',
     x: 1550,
     y: 560,
@@ -239,11 +239,11 @@ export const nodes: DFDNode[] = [
     icon: 'BarChart3',
     roles: ['faculty'],
     details: [
-      'View personal evaluation results',
-      'Cross-department aggregates (server-computed)',
-      'TNA-based development insights',
-      'E-sign acknowledgment',
-      'Access after HR/QA release only'
+      'View personal evaluation results (after release)',
+      'Course breakdown & score distribution',
+      'Individual TNA insights (deterministic templates)',
+      'E-sign acknowledgment of results (RA 8792)',
+      'Server-computed aggregates only'
     ]
   },
   {
@@ -257,12 +257,12 @@ export const nodes: DFDNode[] = [
     icon: 'ClipboardCheck',
     roles: ['dean'],
     details: [
-      'Department aggregate reviews',
+      'Department aggregate reviews (RLS-scoped)',
       'Drill-down into faculty metrics',
-      'Cross-department comparisons',
-      'Oversight sign-off (due within 7 days)',
-      'Does NOT gate faculty access',
-      'Access after HR/QA release'
+      'Department TNA snapshots',
+      'Comparative analytics (vs institution)',
+      'Oversight sign-off (7-day window)',
+      'Send acknowledgment reminders'
     ]
   },
 
@@ -482,30 +482,40 @@ export const flows: DFDFlow[] = [
     id: 'f15',
     from: 'auth',
     to: 'faculty-dashboard',
-    label: 'Scoped data',
-    description: 'Faculty receives role-scoped bootstrap data (own results only)',
+    label: 'Bootstrap data',
+    description: 'Faculty receives role-scoped bootstrap data (own results only, after HR/QA release)',
     roles: ['faculty'],
     stepOrder: { student: null, hr_qa: null, faculty: 2, dean: null },
     hasReturnFlow: true
   },
   {
     id: 'f16',
-    from: 'verify-release',
-    to: 'faculty-dashboard',
-    label: 'Released results',
-    description: 'After HR/QA release, faculty can view their evaluation results',
+    from: 'faculty-dashboard',
+    to: 'evaluations-db',
+    label: 'View metrics',
+    description: 'Faculty views personal evaluation metrics and course breakdown',
     roles: ['faculty'],
-    stepOrder: { student: null, hr_qa: null, faculty: 3, dean: null }
+    stepOrder: { student: null, hr_qa: null, faculty: 3, dean: null },
+    hasReturnFlow: true
   },
   {
     id: 'f17',
     from: 'faculty-dashboard',
     to: 'tna-engine',
-    label: 'Request insights',
-    description: 'Faculty views TNA-based professional development recommendations',
+    label: 'Individual TNA',
+    description: 'Faculty receives deterministic, pre-approved TNA insights',
     roles: ['faculty'],
     stepOrder: { student: null, hr_qa: null, faculty: 4, dean: null },
     hasReturnFlow: true
+  },
+  {
+    id: 'f17b',
+    from: 'faculty-dashboard',
+    to: 'verify-release',
+    label: 'Acknowledgment',
+    description: 'Faculty e-signs acknowledgment of results (RA 8792)',
+    roles: ['faculty'],
+    stepOrder: { student: null, hr_qa: null, faculty: 5, dean: null }
   },
 
   // Dean flows
@@ -522,28 +532,30 @@ export const flows: DFDFlow[] = [
     id: 'f19',
     from: 'auth',
     to: 'dean-oversight',
-    label: 'Department scope',
-    description: 'Dean receives department-scoped data after HR/QA release',
+    label: 'Bootstrap data',
+    description: 'Dean receives department-scoped bootstrap data (aggregates only, after HR/QA release)',
     roles: ['dean'],
-    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 3 }
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 2 },
+    hasReturnFlow: true
   },
   {
     id: 'f20',
-    from: 'verify-release',
-    to: 'dean-oversight',
-    label: 'Released aggregates',
-    description: 'Dean accesses department aggregates (student IDs hidden)',
+    from: 'dean-oversight',
+    to: 'evaluations-db',
+    label: 'Department evaluations',
+    description: 'Dean queries department evaluations (student IDs hidden via RLS)',
     roles: ['dean'],
-    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 4 }
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 3 },
+    hasReturnFlow: true
   },
   {
     id: 'f21',
     from: 'dean-oversight',
     to: 'tna-engine',
-    label: 'Department analysis',
-    description: 'Dean views department-level TNA snapshots and comparisons',
+    label: 'Department TNA',
+    description: 'Dean views department-level TNA snapshots and comparative analytics',
     roles: ['dean'],
-    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 5 },
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 4 },
     hasReturnFlow: true
   },
   {
@@ -553,7 +565,7 @@ export const flows: DFDFlow[] = [
     label: 'Oversight sign-off',
     description: 'Dean e-signs oversight within 7 days (does not gate faculty access)',
     roles: ['dean'],
-    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 6 }
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 5 }
   },
 
   // Shared flows
@@ -564,7 +576,7 @@ export const flows: DFDFlow[] = [
     label: 'Analytics data',
     description: 'TNA snapshots feed into report generation',
     roles: ['hr_qa', 'dean', 'faculty'],
-    stepOrder: { student: null, hr_qa: 8, faculty: 5, dean: 7 },
+    stepOrder: { student: null, hr_qa: 8, faculty: null, dean: null },
     hasReturnFlow: true
   },
   {
@@ -574,7 +586,7 @@ export const flows: DFDFlow[] = [
     label: 'PDF/Excel reports',
     description: 'Faculty receives printable evaluation reports',
     roles: ['faculty'],
-    stepOrder: { student: null, hr_qa: null, faculty: 6, dean: null },
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: null },
     hasReturnFlow: true
   },
   {
@@ -584,7 +596,7 @@ export const flows: DFDFlow[] = [
     label: 'Department reports',
     description: 'Dean receives department analytics reports',
     roles: ['dean'],
-    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 8 },
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: null },
     hasReturnFlow: true
   },
   {
@@ -608,9 +620,9 @@ export const roleDescriptions: Record<UserRole, { title: string; subtitle: strin
   },
   faculty: {
     title: 'Faculty',
-    subtitle: 'View evaluation results & development insights',
+    subtitle: 'View metrics, TNA insights & acknowledge results',
     color: '#8b5cf6',
-    steps: 6
+    steps: 5
   },
   hr_qa: {
     title: 'HR / QA',
@@ -620,8 +632,8 @@ export const roleDescriptions: Record<UserRole, { title: string; subtitle: strin
   },
   dean: {
     title: 'Dean / Program Head',
-    subtitle: 'Oversee department analytics & sign-off',
+    subtitle: 'Review department data & oversight sign-off',
     color: '#f59e0b',
-    steps: 8
+    steps: 5
   }
 };
