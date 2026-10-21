@@ -92,7 +92,7 @@ export default function DFDCanvas({
   // When zoomed IN (small viewBox): text shrinks naturally (you're closer)
   // When zoomed OUT (large viewBox): text grows to stay readable
   const rawZoomScale = viewBox.width / BASE_VIEWBOX_WIDTH;
-  const zoomScale = Math.max(0.5, Math.min(2.5, rawZoomScale));
+  const zoomScale = Math.max(0.5, Math.min(4.0, rawZoomScale));
   
   // Hide secondary text when zoomed out too far to prevent overlaps
   const isZoomedOutFar = rawZoomScale > 1.4;
@@ -119,7 +119,7 @@ export default function DFDCanvas({
     const nodeDiagonal = Math.sqrt(NODE_WIDTH * NODE_WIDTH + NODE_HEIGHT * NODE_HEIGHT);
     const maxScale = (minDistance * 0.9) / nodeDiagonal;
     
-    return Math.min(2.0, maxScale); // Cap at 2.0 even if more space available
+    return Math.min(3.0, maxScale); // Cap at 3.0 even if more space available
   };
 
   const maxSafeScale = calculateMaxSafeScale();
@@ -519,19 +519,19 @@ export default function DFDCanvas({
                   <g>
                     {/* Direction badge */}
                     <rect
-                      x={midX - 45}
-                      y={midY - labelOffset - 10}
-                      width={40}
-                      height={16}
+                      x={midX - 55}
+                      y={midY - labelOffset - 12}
+                      width={50}
+                      height={20}
                       rx={4}
                       fill={directionColor}
                       opacity="0.9"
                     />
                     <text
-                      x={midX - 25}
+                      x={midX - 30}
                       y={midY - labelOffset - 1}
                       textAnchor="middle"
-                      fontSize={8}
+                      fontSize={11}
                       fontWeight="700"
                       fill="white"
                       className="pointer-events-none"
@@ -542,18 +542,18 @@ export default function DFDCanvas({
                     {/* Data type badge */}
                     <rect
                       x={midX + 5}
-                      y={midY - labelOffset - 10}
-                      width={50}
-                      height={16}
+                      y={midY - labelOffset - 12}
+                      width={60}
+                      height={20}
                       rx={4}
                       fill={dataTypeColor}
                       opacity="0.85"
                     />
                     <text
-                      x={midX + 30}
+                      x={midX + 35}
                       y={midY - labelOffset - 1}
                       textAnchor="middle"
-                      fontSize={7}
+                      fontSize={10}
                       fontWeight="600"
                       fill="white"
                       className="pointer-events-none"
@@ -590,11 +590,11 @@ export default function DFDCanvas({
               {!isZoomedOutFar && (isCurrent || isHovered) && (() => {
                 const labelX = (getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2;
                 const labelY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 + 35;
-                const flowLabelSize = 11;
-                const descSize = 9;
-                const boxHeight = 40;
+                const flowLabelSize = 14;
+                const descSize = 12;
+                const boxHeight = 50;
                 // Estimate text width based on character count
-                const estimatedWidth = Math.max(120, Math.max(flow.label.length, flow.description.length) * 5.5);
+                const estimatedWidth = Math.max(160, Math.max(flow.label.length, flow.description.length) * 7);
                 
                 return (
                   <g>
@@ -612,7 +612,7 @@ export default function DFDCanvas({
                     {/* Flow label */}
                     <text
                       x={labelX}
-                      y={labelY - 6}
+                      y={labelY - 8}
                       textAnchor="middle"
                       className="font-bold pointer-events-none"
                       fontSize={flowLabelSize}
@@ -623,7 +623,7 @@ export default function DFDCanvas({
                     {/* Flow description */}
                     <text
                       x={labelX}
-                      y={labelY + 8}
+                      y={labelY + 10}
                       textAnchor="middle"
                       className="pointer-events-none"
                       fontSize={descSize}
@@ -801,7 +801,7 @@ export default function DFDCanvas({
               {(() => {
                 const IconComponent = iconMap[node.icon];
                 if (!IconComponent) return null;
-                const iconSizePx = 32;
+                const iconSizePx = 40;
                 return (
                   <foreignObject
                     x={cx - iconSizePx / 2}
@@ -831,7 +831,7 @@ export default function DFDCanvas({
                   y={node.y + 60}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  fontSize={16}
+                  fontSize={20}
                   fontWeight={isCurrent ? '700' : '600'}
                   fill={isCurrent ? 'white' : isDimmed ? '#94a3b8' : 'white'}
                   style={{
@@ -846,10 +846,10 @@ export default function DFDCanvas({
               {!isZoomedOutMedium && (
                 <text
                   x={cx}
-                  y={node.y + 78}
+                  y={node.y + 82}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  fontSize={10}
+                  fontSize={13}
                   fill={isCurrent ? '#cbd5e1' : '#64748b'}
                 >
                   {node.type === 'external' ? 'External Entity' : node.type === 'process' ? 'Process' : 'Data Store'}
@@ -863,7 +863,7 @@ export default function DFDCanvas({
                   y={node.y + NODE_HEIGHT + 22}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  fontSize={11}
+                  fontSize={14}
                   fontWeight="600"
                   fill="#06b6d4"
                 >
