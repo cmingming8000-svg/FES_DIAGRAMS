@@ -360,7 +360,7 @@ export const flows: DFDFlow[] = [
     label: 'Session token',
     description: 'Server creates session and stores SHA-256 hash of opaque token',
     roles: ['student', 'hr_qa', 'faculty', 'dean'],
-    stepOrder: { student: 2, hr_qa: 1, faculty: 1, dean: 1 }
+    stepOrder: { student: 2, hr_qa: 2, faculty: 3, dean: 3 }
   },
   {
     id: 'f3',
@@ -407,7 +407,7 @@ export const flows: DFDFlow[] = [
     label: 'Admin credentials',
     description: 'HR/QA authenticates with admin credentials',
     roles: ['hr_qa'],
-    stepOrder: { student: null, hr_qa: 2, faculty: null, dean: null }
+    stepOrder: { student: null, hr_qa: 1, faculty: null, dean: null }
   },
   {
     id: 'f8',
@@ -472,7 +472,7 @@ export const flows: DFDFlow[] = [
     label: 'Faculty credentials',
     description: 'Faculty authenticates with faculty credentials',
     roles: ['faculty'],
-    stepOrder: { student: null, hr_qa: null, faculty: 2, dean: null }
+    stepOrder: { student: null, hr_qa: null, faculty: 1, dean: null }
   },
   {
     id: 'f15',
@@ -510,7 +510,7 @@ export const flows: DFDFlow[] = [
     label: 'Dean credentials',
     description: 'Dean authenticates with department ID (e.g., M001)',
     roles: ['dean'],
-    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 2 }
+    stepOrder: { student: null, hr_qa: null, faculty: null, dean: 1 }
   },
   {
     id: 'f19',
