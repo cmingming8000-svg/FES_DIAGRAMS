@@ -291,26 +291,41 @@ export default function DFDCanvas({
     
     if (!fromNode || !toNode) return;
     
-    // Calculate bounding box of both nodes with padding
-    const padding = 200;
+    // Calculate bounding box of both nodes
+    const padding = 150;
     const minX = Math.min(fromNode.x, toNode.x) - padding;
     const maxX = Math.max(fromNode.x + NODE_WIDTH, toNode.x + NODE_WIDTH) + padding;
     const minY = Math.min(fromNode.y, toNode.y) - padding;
     const maxY = Math.max(fromNode.y + NODE_HEIGHT, toNode.y + NODE_HEIGHT) + padding;
     
-    // Calculate target dimensions with minimum size constraints for readability
-    const minWidth = 800; // Minimum width to keep nodes readable
-    const minHeight = 500; // Minimum height to keep nodes readable
+    const bboxWidth = maxX - minX;
+    const bboxHeight = maxY - minY;
+    
+    // Calculate target viewBox to show nodes at a good readable size
+    // We want nodes to take up about 60-70% of the viewport
+    const targetWidth = bboxWidth * 1.5; // 1.5x the bounding box = nodes take ~67% of view
+    const targetHeight = bboxHeight * 1.5;
+    
+    // Center the viewBox on the bounding box
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    
+    // Ensure minimum zoom level for readability (don't zoom out too far)
+    const minViewWidth = 600; // Minimum width to keep nodes readable
+    const minViewHeight = 400; // Minimum height to keep nodes readable
+    
+    const finalWidth = Math.max(targetWidth, minViewWidth);
+    const finalHeight = Math.max(targetHeight, minViewHeight);
     
     const targetViewBox = {
-      x: minX,
-      y: minY,
-      width: Math.max(minWidth, maxX - minX),
-      height: Math.max(minHeight, maxY - minY)
+      x: centerX - finalWidth / 2,
+      y: centerY - finalHeight / 2,
+      width: finalWidth,
+      height: finalHeight
     };
     
     // Animate viewBox transition
-    const duration = 600; // ms
+    const duration = 800; // ms - slightly longer for smoother feel
     const startTime = performance.now();
     const startViewBox = { ...viewBoxRef.current };
     
