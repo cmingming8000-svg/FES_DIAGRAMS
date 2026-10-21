@@ -281,17 +281,17 @@ export default function DFDCanvas({
     const bboxHeight = maxY - minY;
     
     // Calculate target viewBox to show nodes at a good readable size
-    // We want nodes to take up about 80-85% of the viewport
-    const targetWidth = bboxWidth * 1.2; // 1.2x the bounding box = nodes take ~83% of view
-    const targetHeight = bboxHeight * 1.2;
+    // We want nodes to take up about 95% of the viewport
+    const targetWidth = bboxWidth * 1.05; // 1.05x the bounding box = nodes take ~95% of view
+    const targetHeight = bboxHeight * 1.05;
     
     // Center the viewBox on the bounding box
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
     
     // Ensure minimum zoom level for readability (don't zoom in too much)
-    const minViewWidth = 400; // Minimum width to keep nodes readable
-    const minViewHeight = 300; // Minimum height to keep nodes readable
+    const minViewWidth = 300; // Minimum width to keep nodes readable
+    const minViewHeight = 200; // Minimum height to keep nodes readable
     
     const finalWidth = Math.max(targetWidth, minViewWidth);
     const finalHeight = Math.max(targetHeight, minViewHeight);
