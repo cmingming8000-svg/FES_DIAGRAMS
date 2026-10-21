@@ -1,5 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { 
+  GraduationCap, UserCog, Shield, Building2, Lock, FileEdit, EyeOff, 
+  Settings, CheckCircle, BarChart3, ClipboardCheck, Brain, FileText,
+  Database, HardDrive, Key, FileOutput
+} from 'lucide-react';
 import { DFDNode, DFDFlow, UserRole } from '../data/dfdData';
 
 interface DFDCanvasProps {
@@ -11,12 +16,33 @@ interface DFDCanvasProps {
   currentStep: number;
   role: UserRole | null;
   onSelectNode: (id: string) => void;
-  onAuthNodeClick?: (screenX: number, screenY: number) => void;
+  onAuthNodeClick?: () => void;
 }
 
 const NODE_WIDTH = 120;
 const NODE_HEIGHT = 60;
 const BASE_VIEWBOX_WIDTH = 1400;
+
+// Icon mapping
+const iconMap: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+  GraduationCap,
+  UserCog,
+  Shield,
+  Building2,
+  Lock,
+  FileEdit,
+  EyeOff,
+  Settings,
+  CheckCircle,
+  BarChart3,
+  ClipboardCheck,
+  Brain,
+  FileText,
+  Database,
+  HardDrive,
+  Key,
+  FileOutput
+};
 
 export default function DFDCanvas({
   nodes,
@@ -371,9 +397,9 @@ export default function DFDCanvas({
           return (
             <g
               key={node.id}
-              onClick={(e) => {
+              onClick={() => {
                 if (node.id === 'auth' && onAuthNodeClick) {
-                  onAuthNodeClick(e.clientX, e.clientY);
+                  onAuthNodeClick();
                 } else {
                   onSelectNode(node.id);
                 }
@@ -487,19 +513,32 @@ export default function DFDCanvas({
                 />
               )}
 
-              {/* Icon - text abbreviation, sized by tier */}
-              <text
-                x={cx}
-                y={node.y + 24}
-                textAnchor="middle"
-                className="pointer-events-none select-none"
-                fontSize={iconSize * zoomScale}
-                fontWeight="700"
-                fill={isAuthEntry ? '#06b6d4' : isCurrent ? 'white' : node.color}
-                transform={`translate(${cx}, ${node.y + 24}) scale(${zoomScale}) translate(${-cx}, ${-node.y - 24})`}
-              >
-                {node.icon}
-              </text>
+              {/* Icon - Lucide icon, sized by tier */}
+              {(() => {
+                const IconComponent = iconMap[node.icon];
+                if (!IconComponent) return null;
+                const iconSizePx = iconSize * zoomScale;
+                return (
+                  <foreignObject
+                    x={cx - iconSizePx / 2}
+                    y={node.y + 24 - iconSizePx / 2}
+                    width={iconSizePx}
+                    height={iconSizePx}
+                    className="pointer-events-none select-none"
+                  >
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <IconComponent 
+                        className="w-full h-full" 
+                        style={{ 
+                          color: isAuthEntry ? '#06b6d4' : isCurrent ? 'white' : node.color,
+                          width: iconSizePx,
+                          height: iconSizePx
+                        }} 
+                      />
+                    </div>
+                  </foreignObject>
+                );
+              })()}
 
               {/* Label - counter-scaled for zoom, sized by tier */}
               <text

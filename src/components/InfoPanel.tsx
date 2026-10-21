@@ -1,5 +1,31 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  GraduationCap, UserCog, Shield, Building2, Lock, FileEdit, EyeOff, 
+  Settings, CheckCircle, BarChart3, ClipboardCheck, Brain, FileText,
+  Database, HardDrive, Key, FileOutput
+} from 'lucide-react';
 import { DFDNode, DFDFlow, UserRole, roleDescriptions } from '../data/dfdData';
+
+// Icon mapping
+const iconMap: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+  GraduationCap,
+  UserCog,
+  Shield,
+  Building2,
+  Lock,
+  FileEdit,
+  EyeOff,
+  Settings,
+  CheckCircle,
+  BarChart3,
+  ClipboardCheck,
+  Brain,
+  FileText,
+  Database,
+  HardDrive,
+  Key,
+  FileOutput
+};
 
 interface InfoPanelProps {
   selectedNode: DFDNode | null;
@@ -120,7 +146,15 @@ export default function InfoPanel({
             className="space-y-3"
           >
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold px-2 py-1 rounded" style={{ color: selectedNode.color, backgroundColor: `${selectedNode.color}20` }}>{selectedNode.icon}</span>
+              {(() => {
+                const IconComponent = iconMap[selectedNode.icon];
+                if (!IconComponent) return null;
+                return (
+                  <div className="p-1.5 rounded" style={{ color: selectedNode.color, backgroundColor: `${selectedNode.color}20` }}>
+                    <IconComponent className="w-5 h-5" />
+                  </div>
+                );
+              })()}
               <div>
                 <div className="font-bold text-white text-sm">{selectedNode.label}</div>
                 <div className="text-xs text-slate-400">{selectedNode.description}</div>

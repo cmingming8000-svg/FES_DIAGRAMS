@@ -10,7 +10,6 @@ function App() {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [showRolePopup, setShowRolePopup] = useState(false);
-  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
 
   // Get flows relevant to the selected role
   const roleFlows = useMemo(() => {
@@ -185,24 +184,21 @@ function App() {
               currentStep={currentStep}
               role={selectedRole}
               onSelectNode={handleSelectNode}
-              onAuthNodeClick={(screenX, screenY) => {
-                setPopupPosition({ x: screenX, y: screenY });
+              onAuthNodeClick={() => {
                 setShowRolePopup(true);
               }}
             />
 
-            {/* Role Selection Popup */}
-            {showRolePopup && (
-              <RolePopup
-                position={popupPosition}
-                onSelectRole={(role) => {
-                  handleSelectRole(role);
-                  setShowRolePopup(false);
-                }}
-                onClose={() => setShowRolePopup(false)}
-              />
-            )}
-        </div>
+          {/* Role Selection Popup */}
+          {showRolePopup && (
+            <RolePopup
+              onSelectRole={(role) => {
+                handleSelectRole(role);
+                setShowRolePopup(false);
+              }}
+              onClose={() => setShowRolePopup(false)}
+            />
+          )}        </div>
 
         {/* Footer */}
         <footer className="flex-shrink-0 px-6 py-2 border-t border-white/5">
