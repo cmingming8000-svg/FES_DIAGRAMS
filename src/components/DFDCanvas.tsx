@@ -619,9 +619,10 @@ export default function DFDCanvas({
           const cx = node.x + NODE_WIDTH / 2;
           const cy = node.y + NODE_HEIGHT / 2;
 
-          // Node scale is limited by distance to other nodes to prevent overlap
-          // Don't apply zoomScale here - text uses fixed sizes
-          const totalScale = nodeScale;
+          // Combined scale: node tier scale × zoom counter-scale
+          // Apply zoom compensation but cap at safe limits to prevent overlap
+          const baseScale = nodeScale * zoomScale;
+          const totalScale = Math.min(baseScale, maxSafeScale);
 
           return (
             <g
