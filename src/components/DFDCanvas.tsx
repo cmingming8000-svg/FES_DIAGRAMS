@@ -92,7 +92,8 @@ export default function DFDCanvas({
   // When zoomed IN (small viewBox): text shrinks naturally (you're closer)
   // When zoomed OUT (large viewBox): text grows to stay readable
   const rawZoomScale = viewBox.width / BASE_VIEWBOX_WIDTH;
-  const zoomScale = Math.max(0.5, Math.min(6.0, rawZoomScale));
+  // Apply 15% boost to zoom-out scaling so nodes grow larger when zoomed out
+  const zoomScale = Math.max(0.5, Math.min(7.0, rawZoomScale * 1.15));
   
   // Hide secondary text when zoomed out too far to prevent overlaps
   const isZoomedOutFar = rawZoomScale > 1.4;
@@ -119,7 +120,7 @@ export default function DFDCanvas({
     const nodeDiagonal = Math.sqrt(NODE_WIDTH * NODE_WIDTH + NODE_HEIGHT * NODE_HEIGHT);
     const maxScale = (minDistance * 0.95) / nodeDiagonal;
     
-    return Math.min(4.0, maxScale); // Cap at 4.0 even if more space available
+    return Math.min(4.6, maxScale); // Cap at 4.6 (4.0 * 1.15) even if more space available
   };
 
   const maxSafeScale = calculateMaxSafeScale();
