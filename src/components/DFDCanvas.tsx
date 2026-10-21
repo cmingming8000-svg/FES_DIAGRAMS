@@ -19,9 +19,9 @@ interface DFDCanvasProps {
   onAuthNodeClick?: () => void;
 }
 
-const NODE_WIDTH = 120;
-const NODE_HEIGHT = 60;
-const BASE_VIEWBOX_WIDTH = 1700;
+const NODE_WIDTH = 180;
+const NODE_HEIGHT = 100;
+const BASE_VIEWBOX_WIDTH = 1900;
 
 // Icon mapping
 const iconMap: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
@@ -56,7 +56,7 @@ export default function DFDCanvas({
   onAuthNodeClick,
 }: DFDCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [viewBox, setViewBox] = useState({ x: -20, y: 20, width: 1700, height: 1000 });
+  const [viewBox, setViewBox] = useState({ x: -50, y: 0, width: 2000, height: 1200 });
   const viewBoxRef = useRef(viewBox);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
@@ -92,7 +92,7 @@ export default function DFDCanvas({
   // When zoomed IN (small viewBox): text shrinks naturally (you're closer)
   // When zoomed OUT (large viewBox): text grows to stay readable
   const rawZoomScale = viewBox.width / BASE_VIEWBOX_WIDTH;
-  const zoomScale = Math.max(0.6, Math.min(1.8, rawZoomScale));
+  const zoomScale = Math.max(0.5, Math.min(2.5, rawZoomScale));
   
   // Hide secondary text when zoomed out too far to prevent overlaps
   const isZoomedOutFar = rawZoomScale > 1.4;
@@ -119,7 +119,7 @@ export default function DFDCanvas({
     const nodeDiagonal = Math.sqrt(NODE_WIDTH * NODE_WIDTH + NODE_HEIGHT * NODE_HEIGHT);
     const maxScale = (minDistance * 0.9) / nodeDiagonal;
     
-    return Math.min(1.35, maxScale); // Cap at 1.35 even if more space available
+    return Math.min(2.0, maxScale); // Cap at 2.0 even if more space available
   };
 
   const maxSafeScale = calculateMaxSafeScale();
@@ -152,6 +152,40 @@ export default function DFDCanvas({
     }
   };
 
+  // Generate return path (offset parallel to main path for bidirectional flow)
+  const getReturnPath = (flow: DFDFlow) => {
+    const from = getNodeCenter(flow.from);
+    const to = getNodeCenter(flow.to);
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    
+    // Offset perpendicular to the flow direction
+    const offset = 15;
+    const nx = -dy / len * offset;
+    const ny = dx / len * offset;
+    
+    // Reverse direction (from to -> from)
+    const rFrom = { x: to.x + nx, y: to.y + ny };
+    const rTo = { x: from.x + nx, y: from.y + ny };
+    const rdx = rTo.x - rFrom.x;
+    const rdy = rTo.y - rFrom.y;
+    
+    if (Math.abs(rdx) > Math.abs(rdy)) {
+      const cx1 = rFrom.x + rdx * 0.4;
+      const cy1 = rFrom.y + rdy * 0.1;
+      const cx2 = rTo.x - rdx * 0.4;
+      const cy2 = rTo.y - rdy * 0.1;
+      return `M ${rFrom.x} ${rFrom.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${rTo.x} ${rTo.y}`;
+    } else {
+      const cx1 = rFrom.x + rdx * 0.1;
+      const cy1 = rFrom.y + rdy * 0.4;
+      const cx2 = rTo.x - rdx * 0.1;
+      const cy2 = rTo.y - rdy * 0.4;
+      return `M ${rFrom.x} ${rFrom.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${rTo.x} ${rTo.y}`;
+    }
+  };
+
   const isFlowActive = (flow: DFDFlow) => {
     if (!role) return false;
     return activeFlowIds.includes(flow.id);
@@ -168,8 +202,8 @@ export default function DFDCanvas({
   const zoomIn = useCallback(() => {
     setManualControl(true);
     setViewBox((vb) => {
-      const newWidth = Math.max(500, vb.width * 0.8);
-      const newHeight = Math.max(300, vb.height * 0.8);
+      const newWidth = Math.max(600, vb.width * 0.8);
+      const newHeight = Math.max(360, vb.height * 0.8);
       return {
         x: vb.x + (vb.width - newWidth) * 0.5,
         y: vb.y + (vb.height - newHeight) * 0.5,
@@ -182,8 +216,8 @@ export default function DFDCanvas({
   const zoomOut = useCallback(() => {
     setManualControl(true);
     setViewBox((vb) => {
-      const newWidth = Math.min(3400, vb.width * 1.25);
-      const newHeight = Math.min(2000, vb.height * 1.25);
+      const newWidth = Math.min(4000, vb.width * 1.25);
+      const newHeight = Math.min(2400, vb.height * 1.25);
       return {
         x: vb.x - (newWidth - vb.width) * 0.5,
         y: vb.y - (newHeight - vb.height) * 0.5,
@@ -195,7 +229,7 @@ export default function DFDCanvas({
 
   const resetView = useCallback(() => {
     setManualControl(true);
-    setViewBox({ x: -20, y: 20, width: 1700, height: 1000 });
+    setViewBox({ x: -50, y: 0, width: 2000, height: 1200 });
   }, []);
 
   // Pan handling
@@ -232,8 +266,8 @@ export default function DFDCanvas({
       setManualControl(true);
       const factor = e.deltaY > 0 ? 1.1 : 0.9;
       setViewBox((vb) => {
-        const newWidth = Math.max(500, Math.min(3400, vb.width * factor));
-        const newHeight = Math.max(300, Math.min(2000, vb.height * factor));
+        const newWidth = Math.max(600, Math.min(4000, vb.width * factor));
+        const newHeight = Math.max(360, Math.min(2400, vb.height * factor));
         const mouseXRatio = e.offsetX / svg.clientWidth;
         const mouseYRatio = e.offsetY / svg.clientHeight;
         return {
@@ -374,6 +408,9 @@ export default function DFDCanvas({
           <marker id="arrowhead-current" markerWidth="14" markerHeight="12" refX="13" refY="6" orient="auto">
             <polygon points="0 0, 14 6, 0 12" fill="#22d3ee" />
           </marker>
+          <marker id="arrowhead-return" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+            <polygon points="0 0, 10 4, 0 8" fill="#10b981" />
+          </marker>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
           </pattern>
@@ -421,6 +458,19 @@ export default function DFDCanvas({
                 filter={isCurrent ? 'url(#glow)' : undefined}
                 className="transition-all duration-500"
               />
+              {/* Return path (bidirectional flow - data coming back) */}
+              {(isCurrent || active) && (
+                <path
+                  d={getReturnPath(flow)}
+                  fill="none"
+                  stroke={isCurrent ? '#10b981' : '#10b98166'}
+                  strokeWidth={isCurrent ? 2.5 : 1.5}
+                  strokeDasharray="6 4"
+                  markerEnd="url(#arrowhead-return)"
+                  className="transition-all duration-500"
+                  opacity={isCurrent ? 0.9 : 0.5}
+                />
+              )}
               {/* Data direction and type indicators for current flow (hide when zoomed out) */}
               {isCurrent && !isZoomedOutMedium && (() => {
                 const fromNode = nodes.find(n => n.id === flow.from);
@@ -747,11 +797,11 @@ export default function DFDCanvas({
               {(() => {
                 const IconComponent = iconMap[node.icon];
                 if (!IconComponent) return null;
-                const iconSizePx = 24;
+                const iconSizePx = 32;
                 return (
                   <foreignObject
                     x={cx - iconSizePx / 2}
-                    y={node.y + 24 - iconSizePx / 2}
+                    y={node.y + 30 - iconSizePx / 2}
                     width={iconSizePx}
                     height={iconSizePx}
                     className="pointer-events-none select-none"
@@ -774,10 +824,10 @@ export default function DFDCanvas({
               {!isZoomedOutFar && (
                 <text
                   x={cx}
-                  y={node.y + 40}
+                  y={node.y + 60}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  fontSize={14}
+                  fontSize={16}
                   fontWeight={isCurrent ? '700' : '600'}
                   fill={isCurrent ? 'white' : isDimmed ? '#94a3b8' : 'white'}
                   style={{
@@ -792,10 +842,10 @@ export default function DFDCanvas({
               {!isZoomedOutMedium && (
                 <text
                   x={cx}
-                  y={node.y + 52}
+                  y={node.y + 78}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  fontSize={8}
+                  fontSize={10}
                   fill={isCurrent ? '#cbd5e1' : '#64748b'}
                 >
                   {node.type === 'external' ? 'External Entity' : node.type === 'process' ? 'Process' : 'Data Store'}
@@ -806,10 +856,10 @@ export default function DFDCanvas({
               {isAuthEntry && !isZoomedOutFar && (
                 <text
                   x={cx}
-                  y={node.y + NODE_HEIGHT + 18}
+                  y={node.y + NODE_HEIGHT + 22}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  fontSize={9}
+                  fontSize={11}
                   fontWeight="600"
                   fill="#06b6d4"
                 >

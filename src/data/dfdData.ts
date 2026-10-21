@@ -24,14 +24,14 @@ export interface DFDFlow {
 }
 
 export const nodes: DFDNode[] = [
-  // External Entities (Column 1: x=60)
+  // External Entities (Column 1: x=80)
   {
     id: 'student-user',
     label: 'Student',
     description: 'Enrolled student who evaluates faculty',
     type: 'external',
-    x: 60,
-    y: 60,
+    x: 80,
+    y: 80,
     color: '#3b82f6',
     icon: 'GraduationCap',
     roles: ['student'],
@@ -47,8 +47,8 @@ export const nodes: DFDNode[] = [
     label: 'Faculty',
     description: 'Teaching staff being evaluated',
     type: 'external',
-    x: 60,
-    y: 320,
+    x: 80,
+    y: 400,
     color: '#8b5cf6',
     icon: 'UserCog',
     roles: ['faculty'],
@@ -64,8 +64,8 @@ export const nodes: DFDNode[] = [
     label: 'HR / QA',
     description: 'System administrator & quality assurance',
     type: 'external',
-    x: 60,
-    y: 580,
+    x: 80,
+    y: 720,
     color: '#ef4444',
     icon: 'Shield',
     roles: ['hr_qa'],
@@ -81,8 +81,8 @@ export const nodes: DFDNode[] = [
     label: 'Dean / Program Head',
     description: 'Department oversight authority',
     type: 'external',
-    x: 60,
-    y: 840,
+    x: 80,
+    y: 1040,
     color: '#f59e0b',
     icon: 'Building2',
     roles: ['dean'],
@@ -94,14 +94,14 @@ export const nodes: DFDNode[] = [
     ]
   },
 
-  // Processes
+  // Column 2: Entry Processes (x=400)
   {
     id: 'auth',
     label: 'Authentication',
     description: 'Login & session management',
     type: 'process',
-    x: 320,
-    y: 440,
+    x: 400,
+    y: 560,
     color: '#06b6d4',
     icon: 'Lock',
     roles: ['student', 'hr_qa', 'faculty', 'dean'],
@@ -118,8 +118,8 @@ export const nodes: DFDNode[] = [
     label: 'Evaluation Submission',
     description: '3-step evaluation flow',
     type: 'process',
-    x: 320,
-    y: 60,
+    x: 400,
+    y: 80,
     color: '#3b82f6',
     icon: 'FileEdit',
     roles: ['student'],
@@ -132,12 +132,32 @@ export const nodes: DFDNode[] = [
     ]
   },
   {
+    id: 'sessions-store',
+    label: 'Session Store',
+    description: 'Active session management',
+    type: 'datastore',
+    x: 400,
+    y: 1040,
+    color: '#475569',
+    icon: 'Key',
+    roles: ['student', 'hr_qa', 'faculty', 'dean'],
+    details: [
+      'SHA-256 of opaque tokens stored',
+      'HttpOnly; Secure; SameSite=Strict cookies',
+      '__Host- prefix for cookie binding',
+      '15-min idle / 12-hr absolute timeout',
+      'In-memory rate limit counters'
+    ]
+  },
+
+  // Column 3: Core Processes (x=720)
+  {
     id: 'pii-redaction',
     label: 'PII Redaction',
     description: 'Automated privacy protection (RA 10173)',
     type: 'process',
-    x: 620,
-    y: 60,
+    x: 720,
+    y: 80,
     color: '#ec4899',
     icon: 'EyeOff',
     roles: ['student', 'hr_qa'],
@@ -150,12 +170,30 @@ export const nodes: DFDNode[] = [
     ]
   },
   {
+    id: 'evaluations-db',
+    label: 'Evaluations DB',
+    description: 'PostgreSQL with row-level security',
+    type: 'datastore',
+    x: 720,
+    y: 400,
+    color: '#64748b',
+    icon: 'Database',
+    roles: ['student', 'hr_qa', 'faculty', 'dean'],
+    details: [
+      'PostgreSQL 16 relational database',
+      'Row-level security policies',
+      'Per-transaction security context',
+      'Foreign keys & indexes',
+      'RLS on evaluations & evaluation_ratings'
+    ]
+  },
+  {
     id: 'admin-dashboard',
     label: 'Admin Dashboard',
     description: 'HR/QA system management',
     type: 'process',
-    x: 620,
-    y: 580,
+    x: 720,
+    y: 720,
     color: '#ef4444',
     icon: 'Settings',
     roles: ['hr_qa'],
@@ -168,13 +206,15 @@ export const nodes: DFDNode[] = [
       'Activate/deactivate/unlock accounts'
     ]
   },
+
+  // Column 4: Analysis & Oversight (x=1040)
   {
     id: 'verify-release',
     label: 'Verify & Release',
     description: 'HR/QA evaluation release (e-signed)',
     type: 'process',
-    x: 920,
-    y: 320,
+    x: 1040,
+    y: 240,
     color: '#10b981',
     icon: 'CheckCircle',
     roles: ['hr_qa', 'faculty', 'dean'],
@@ -192,8 +232,8 @@ export const nodes: DFDNode[] = [
     label: 'Faculty Dashboard',
     description: 'Personal metrics & development',
     type: 'process',
-    x: 920,
-    y: 580,
+    x: 1040,
+    y: 560,
     color: '#8b5cf6',
     icon: 'BarChart3',
     roles: ['faculty'],
@@ -210,8 +250,8 @@ export const nodes: DFDNode[] = [
     label: 'Dean Oversight',
     description: 'Department analytics & sign-off',
     type: 'process',
-    x: 920,
-    y: 840,
+    x: 1040,
+    y: 880,
     color: '#f59e0b',
     icon: 'ClipboardCheck',
     roles: ['dean'],
@@ -224,13 +264,15 @@ export const nodes: DFDNode[] = [
       'Access after HR/QA release'
     ]
   },
+
+  // Column 5: Services & Reports (x=1360)
   {
     id: 'tna-engine',
     label: 'TNA Engine',
     description: 'Training Needs Analysis',
     type: 'process',
-    x: 1220,
-    y: 200,
+    x: 1360,
+    y: 240,
     color: '#14b8a6',
     icon: 'Brain',
     roles: ['hr_qa', 'faculty', 'dean'],
@@ -247,8 +289,8 @@ export const nodes: DFDNode[] = [
     label: 'Audit Service',
     description: 'Append-only audit trail',
     type: 'process',
-    x: 1220,
-    y: 440,
+    x: 1360,
+    y: 560,
     color: '#6366f1',
     icon: 'FileText',
     roles: ['hr_qa'],
@@ -260,69 +302,13 @@ export const nodes: DFDNode[] = [
       'Detects tampering attempts'
     ]
   },
-
-  // Data Stores
-  {
-    id: 'evaluations-db',
-    label: 'Evaluations DB',
-    description: 'PostgreSQL with row-level security',
-    type: 'datastore',
-    x: 620,
-    y: 320,
-    color: '#64748b',
-    icon: 'Database',
-    roles: ['student', 'hr_qa', 'faculty', 'dean'],
-    details: [
-      'PostgreSQL 16 relational database',
-      'Row-level security policies',
-      'Per-transaction security context',
-      'Foreign keys & indexes',
-      'RLS on evaluations & evaluation_ratings'
-    ]
-  },
-  {
-    id: 'audit-db',
-    label: 'Audit Log',
-    description: 'Immutable audit trail storage',
-    type: 'datastore',
-    x: 1520,
-    y: 440,
-    color: '#475569',
-    icon: 'HardDrive',
-    roles: ['hr_qa'],
-    details: [
-      'Append-only table',
-      'Triggers block UPDATE/DELETE/TRUNCATE',
-      'SHA-256 hash chain',
-      'Off-host log shipping recommended',
-      'WORM backups complement security'
-    ]
-  },
-  {
-    id: 'sessions-store',
-    label: 'Session Store',
-    description: 'Active session management',
-    type: 'datastore',
-    x: 320,
-    y: 840,
-    color: '#475569',
-    icon: 'Key',
-    roles: ['student', 'hr_qa', 'faculty', 'dean'],
-    details: [
-      'SHA-256 of opaque tokens stored',
-      'HttpOnly; Secure; SameSite=Strict cookies',
-      '__Host- prefix for cookie binding',
-      '15-min idle / 12-hr absolute timeout',
-      'In-memory rate limit counters'
-    ]
-  },
   {
     id: 'reports',
     label: 'Report Generator',
     description: 'PDF & Excel export',
     type: 'process',
-    x: 1520,
-    y: 200,
+    x: 1360,
+    y: 880,
     color: '#0ea5e9',
     icon: 'FileOutput',
     roles: ['hr_qa', 'dean', 'faculty'],
@@ -332,6 +318,26 @@ export const nodes: DFDNode[] = [
       'Admin/Dean/Faculty print reports',
       'Agreement verification receipts',
       'Tracking ID verification endpoint'
+    ]
+  },
+
+  // Column 6: Storage (x=1680)
+  {
+    id: 'audit-db',
+    label: 'Audit Log',
+    description: 'Immutable audit trail storage',
+    type: 'datastore',
+    x: 1680,
+    y: 560,
+    color: '#475569',
+    icon: 'HardDrive',
+    roles: ['hr_qa'],
+    details: [
+      'Append-only table',
+      'Triggers block UPDATE/DELETE/TRUNCATE',
+      'SHA-256 hash chain',
+      'Off-host log shipping recommended',
+      'WORM backups complement security'
     ]
   }
 ];
