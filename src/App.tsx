@@ -61,6 +61,17 @@ function App() {
     return roleDescriptions[selectedRole].steps;
   }, [selectedRole]);
 
+  // ERD tour sequence - sorted by tourOrder
+  const tourSequence = useMemo(() => {
+    return [...entities]
+      .filter(e => e.tourOrder !== undefined)
+      .sort((a, b) => (a.tourOrder || 0) - (b.tourOrder || 0))
+      .map(e => e.id);
+  }, []);
+
+  // Current tour index for ERD mode
+  const [tourIndex, setTourIndex] = useState<number>(-1);
+
   const handleSelectRole = useCallback((role: UserRole) => {
     setSelectedRole(role);
     setCurrentStep(1);
@@ -88,17 +99,52 @@ function App() {
     setCurrentStep(1);
     setSelectedNode(null);
     setSelectedEntity(null);
+    setTourIndex(-1);
+  }, []);
+
+  const handleModeChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+    setTourIndex(-1);
+    // Reset selections when switching modes
+    if (mode === 'dfd') {
+      setSelectedEntity(null);
+    } else {
+      setSelectedRole(null);
+      setSelectedNode(null);
+      setCurrentStep(1);
+    }
   }, []);
 
   // Keyboard navigation and save positions
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Arrow key navigation - different behavior for DFD vs ERD mode
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         e.preventDefault();
-        setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
+        if (viewMode === 'dfd') {
+          // DFD mode: navigate through steps
+          setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
+        } else if (viewMode === 'erd' && tourSequence.length > 0) {
+          // ERD mode: navigate through tour sequence
+          setTourIndex((prev) => {
+            const nextIndex = prev < tourSequence.length - 1 ? prev + 1 : 0;
+            setSelectedEntity(tourSequence[nextIndex]);
+            return nextIndex;
+          });
+        }
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault();
-        setCurrentStep((prev) => Math.max(prev - 1, 1));
+        if (viewMode === 'dfd') {
+          // DFD mode: navigate through steps
+          setCurrentStep((prev) => Math.max(prev - 1, 1));
+        } else if (viewMode === 'erd' && tourSequence.length > 0) {
+          // ERD mode: navigate through tour sequence (backwards)
+          setTourIndex((prev) => {
+            const nextIndex = prev > 0 ? prev - 1 : tourSequence.length - 1;
+            setSelectedEntity(tourSequence[nextIndex]);
+            return nextIndex;
+          });
+        }
       } else if (e.key === 'Escape') {
         handleReset();
       } else if (viewMode === 'erd' && e.ctrlKey && e.altKey && e.code === 'Space') {
@@ -290,7 +336,7 @@ function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [totalSteps, handleReset, viewMode, selectedRole, currentStep, selectedEntity]);
+  }, [totalSteps, handleReset, viewMode, selectedRole, currentStep, selectedEntity, tourSequence]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white overflow-hidden select-none">
@@ -314,7 +360,7 @@ function App() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <ModeSwitcher mode={viewMode} onModeChange={setViewMode} />
+              <ModeSwitcher mode={viewMode} onModeChange={handleModeChange} />
               {(selectedRole || selectedEntity) && (
                 <motion.button
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -327,6 +373,10 @@ function App() {
               )}
               {viewMode === 'erd' && (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-900/30 backdrop-blur border border-cyan-500/30 text-xs text-cyan-300">
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">←</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">→</kbd>
+                  <span className="ml-1">Tour</span>
+                  <span className="mx-2 text-cyan-500">|</span>
                   <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Ctrl</kbd>
                   <span>+</span>
                   <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Alt</kbd>
