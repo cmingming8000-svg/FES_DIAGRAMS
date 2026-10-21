@@ -216,6 +216,9 @@ export default function DFDCanvas({
           <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
             <polygon points="0 0, 8 3, 0 6" fill="#475569" />
           </marker>
+          <marker id="arrowhead-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="rgba(71,85,105,0.15)" />
+          </marker>
           <marker id="arrowhead-active" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
             <polygon points="0 0, 8 3, 0 6" fill="#06b6d4" />
           </marker>
@@ -261,11 +264,11 @@ export default function DFDCanvas({
                   isCurrent ? '#22d3ee' :
                   active ? '#06b6d4' :
                   isHovered ? '#64748b' :
-                  'rgba(71,85,105,0.2)'
+                  'rgba(71,85,105,0.06)'
                 }
-                strokeWidth={isCurrent ? 3 : isHovered ? 2 : active ? 1.5 : 0.8}
-                strokeDasharray={active ? 'none' : '5 3'}
-                markerEnd={isCurrent ? 'url(#arrowhead-current)' : active ? 'url(#arrowhead-active)' : 'url(#arrowhead)'}
+                strokeWidth={isCurrent ? 3 : isHovered ? 2 : active ? 1.8 : 0.5}
+                strokeDasharray={active ? 'none' : '4 4'}
+                markerEnd={isCurrent ? 'url(#arrowhead-current)' : active ? 'url(#arrowhead-active)' : 'url(#arrowhead-dim)'}
                 filter={isCurrent ? 'url(#glow)' : undefined}
                 className="transition-all duration-500"
               />
@@ -317,10 +320,41 @@ export default function DFDCanvas({
         {nodes.map((node) => {
           const isSelected = selectedNode === node.id;
           const isHighlighted = highlightedNodeIds.includes(node.id);
-          const isDimmed = role && !isHighlighted && !isSelected;
-          const isHovered = hoveredNode === node.id;
           const isCurrentSource = currentFlow?.from === node.id;
           const isCurrentTarget = currentFlow?.to === node.id;
+          const isCurrent = isCurrentSource || isCurrentTarget;
+          const isDimmed = role && !isHighlighted && !isSelected;
+          const isHovered = hoveredNode === node.id;
+
+          // Three tiers of visual prominence
+          // current > highlighted > dimmed
+          const nodeScale = isDimmed
+            ? 0.55
+            : isCurrent
+            ? 1.35
+            : isHighlighted
+            ? 1.0
+            : 1.0;
+
+          const nodeOpacity = isDimmed
+            ? 0.08
+            : isCurrent
+            ? 1
+            : isHighlighted
+            ? 0.9
+            : 1;
+
+          // Font sizes per tier
+          const iconSize = isDimmed ? 10 : isCurrent ? 22 : 16;
+          const labelSize = isDimmed ? 6 : isCurrent ? 14 : 10;
+          const typeSize = isDimmed ? 4 : isCurrent ? 8 : 6;
+
+          // Anchor point for scaling (center of the node)
+          const cx = node.x + NODE_WIDTH / 2;
+          const cy = node.y + NODE_HEIGHT / 2;
+
+          // Combined scale: node tier scale × zoom counter-scale
+          const totalScale = nodeScale * zoomScale;
 
           return (
             <g
@@ -329,22 +363,39 @@ export default function DFDCanvas({
               onMouseEnter={() => setHoveredNode(node.id)}
               onMouseLeave={() => setHoveredNode(null)}
               className="cursor-pointer"
-              style={{ opacity: isDimmed ? 0.2 : 1, transition: 'opacity 0.4s' }}
+              style={{
+                opacity: nodeOpacity,
+                transition: 'opacity 0.5s ease, transform 0.5s ease',
+                transformOrigin: `${cx}px ${cy}px`,
+                transform: `scale(${nodeScale})`,
+              }}
             >
-              {/* Outer glow for selected/current nodes */}
-              {(isSelected || isCurrentSource || isCurrentTarget) && (
-                <rect
-                  x={node.x - 5}
-                  y={node.y - 5}
-                  width={NODE_WIDTH + 10}
-                  height={NODE_HEIGHT + 10}
-                  rx={node.type === 'process' ? (NODE_WIDTH + 10) / 2 : 16}
-                  fill="none"
-                  stroke={node.color}
-                  strokeWidth="1.5"
-                  opacity="0.5"
-                  filter="url(#glow)"
-                />
+              {/* Outer glow for current-step nodes */}
+              {isCurrent && (
+                <>
+                  <rect
+                    x={node.x - 8}
+                    y={node.y - 8}
+                    width={NODE_WIDTH + 16}
+                    height={NODE_HEIGHT + 16}
+                    rx={node.type === 'process' ? (NODE_WIDTH + 16) / 2 : 18}
+                    fill="none"
+                    stroke={node.color}
+                    strokeWidth="2"
+                    opacity="0.6"
+                    filter="url(#glow-strong)"
+                  />
+                  <rect
+                    x={node.x - 4}
+                    y={node.y - 4}
+                    width={NODE_WIDTH + 8}
+                    height={NODE_HEIGHT + 8}
+                    rx={node.type === 'process' ? (NODE_WIDTH + 8) / 2 : 16}
+                    fill={`${node.color}20`}
+                    stroke={node.color}
+                    strokeWidth="2"
+                  />
+                </>
               )}
 
               {/* Node shape */}
@@ -356,22 +407,22 @@ export default function DFDCanvas({
                     width={NODE_WIDTH}
                     height={NODE_HEIGHT}
                     rx={4}
-                    fill={isSelected || isHovered ? `${node.color}25` : `${node.color}12`}
-                    stroke={isSelected ? node.color : isHovered ? `${node.color}aa` : `${node.color}55`}
-                    strokeWidth={isSelected ? 2 : 1.2}
+                    fill={isCurrent ? `${node.color}30` : isHovered ? `${node.color}25` : `${node.color}15`}
+                    stroke={isCurrent ? node.color : isHovered ? `${node.color}aa` : `${node.color}66`}
+                    strokeWidth={isCurrent ? 2.5 : isHovered ? 1.8 : 1.2}
                     className="transition-all duration-300"
                   />
-                  <line x1={node.x} y1={node.y + 10} x2={node.x + NODE_WIDTH} y2={node.y + 10} stroke={`${node.color}33`} strokeWidth="0.8" />
-                  <line x1={node.x} y1={node.y + NODE_HEIGHT - 10} x2={node.x + NODE_WIDTH} y2={node.y + NODE_HEIGHT - 10} stroke={`${node.color}33`} strokeWidth="0.8" />
+                  <line x1={node.x} y1={node.y + 10} x2={node.x + NODE_WIDTH} y2={node.y + 10} stroke={`${node.color}44`} strokeWidth="0.8" />
+                  <line x1={node.x} y1={node.y + NODE_HEIGHT - 10} x2={node.x + NODE_WIDTH} y2={node.y + NODE_HEIGHT - 10} stroke={`${node.color}44`} strokeWidth="0.8" />
                 </>
               ) : node.type === 'process' ? (
                 <circle
-                  cx={node.x + NODE_WIDTH / 2}
-                  cy={node.y + NODE_HEIGHT / 2}
+                  cx={cx}
+                  cy={cy}
                   r={NODE_WIDTH / 2 - 2}
-                  fill={isSelected || isHovered ? `${node.color}25` : `${node.color}12`}
-                  stroke={isSelected ? node.color : isHovered ? `${node.color}aa` : `${node.color}55`}
-                  strokeWidth={isSelected ? 2 : 1.2}
+                  fill={isCurrent ? `${node.color}30` : isHovered ? `${node.color}25` : `${node.color}15`}
+                  stroke={isCurrent ? node.color : isHovered ? `${node.color}aa` : `${node.color}66`}
+                  strokeWidth={isCurrent ? 2.5 : isHovered ? 1.8 : 1.2}
                   className="transition-all duration-300"
                 />
               ) : (
@@ -381,65 +432,68 @@ export default function DFDCanvas({
                   width={NODE_WIDTH}
                   height={NODE_HEIGHT}
                   rx={12}
-                  fill={isSelected || isHovered ? `${node.color}25` : `${node.color}12`}
-                  stroke={isSelected ? node.color : isHovered ? `${node.color}aa` : `${node.color}55`}
-                  strokeWidth={isSelected ? 2 : 1.2}
+                  fill={isCurrent ? `${node.color}30` : isHovered ? `${node.color}25` : `${node.color}15`}
+                  stroke={isCurrent ? node.color : isHovered ? `${node.color}aa` : `${node.color}66`}
+                  strokeWidth={isCurrent ? 2.5 : isHovered ? 1.8 : 1.2}
                   className="transition-all duration-300"
                 />
               )}
 
-              {/* Icon - counter-scaled for zoom */}
+              {/* Icon - counter-scaled for zoom, sized by tier */}
               <text
-                x={node.x + NODE_WIDTH / 2}
+                x={cx}
                 y={node.y + 24}
                 textAnchor="middle"
                 className="pointer-events-none select-none"
-                fontSize={16 * zoomScale}
-                transform={`translate(${node.x + NODE_WIDTH / 2}, ${node.y + 24}) scale(${zoomScale}) translate(${-node.x - NODE_WIDTH / 2}, ${-node.y - 24})`}
+                fontSize={iconSize * zoomScale}
+                transform={`translate(${cx}, ${node.y + 24}) scale(${zoomScale}) translate(${-cx}, ${-node.y - 24})`}
               >
                 {node.icon}
               </text>
 
-              {/* Label - counter-scaled for zoom */}
+              {/* Label - counter-scaled for zoom, sized by tier */}
               <text
-                x={node.x + NODE_WIDTH / 2}
+                x={cx}
                 y={node.y + 40}
                 textAnchor="middle"
                 className="pointer-events-none select-none"
-                fontSize={9.5 * zoomScale}
-                fontWeight="600"
-                fill="white"
-                transform={`translate(${node.x + NODE_WIDTH / 2}, ${node.y + 40}) scale(${zoomScale}) translate(${-node.x - NODE_WIDTH / 2}, ${-node.y - 40})`}
+                fontSize={labelSize * zoomScale}
+                fontWeight={isCurrent ? '700' : '600'}
+                fill={isCurrent ? 'white' : isDimmed ? '#94a3b8' : 'white'}
+                transform={`translate(${cx}, ${node.y + 40}) scale(${zoomScale}) translate(${-cx}, ${-node.y - 40})`}
+                style={{
+                  textShadow: isCurrent ? `0 0 8px ${node.color}` : 'none',
+                }}
               >
                 {node.label}
               </text>
 
-              {/* Type badge - counter-scaled for zoom */}
+              {/* Type badge - counter-scaled for zoom, sized by tier */}
               <text
-                x={node.x + NODE_WIDTH / 2}
+                x={cx}
                 y={node.y + 52}
                 textAnchor="middle"
                 className="pointer-events-none select-none"
-                fontSize={7 * zoomScale}
-                fill="#64748b"
-                transform={`translate(${node.x + NODE_WIDTH / 2}, ${node.y + 52}) scale(${zoomScale}) translate(${-node.x - NODE_WIDTH / 2}, ${-node.y - 52})`}
+                fontSize={typeSize * zoomScale}
+                fill={isCurrent ? '#cbd5e1' : '#64748b'}
+                transform={`translate(${cx}, ${node.y + 52}) scale(${zoomScale}) translate(${-cx}, ${-node.y - 52})`}
               >
                 {node.type === 'external' ? 'External Entity' : node.type === 'process' ? 'Process' : 'Data Store'}
               </text>
 
               {/* Pulse ring for current step nodes */}
-              {(isCurrentSource || isCurrentTarget) && (
+              {isCurrent && (
                 <motion.rect
-                  x={node.x - 8}
-                  y={node.y - 8}
-                  width={NODE_WIDTH + 16}
-                  height={NODE_HEIGHT + 16}
-                  rx={node.type === 'process' ? (NODE_WIDTH + 16) / 2 : 18}
+                  x={node.x - 12}
+                  y={node.y - 12}
+                  width={NODE_WIDTH + 24}
+                  height={NODE_HEIGHT + 24}
+                  rx={node.type === 'process' ? (NODE_WIDTH + 24) / 2 : 22}
                   fill="none"
                   stroke={node.color}
-                  strokeWidth="1"
+                  strokeWidth="1.5"
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 0.5, 0] }}
+                  animate={{ opacity: [0, 0.7, 0] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 />
               )}
