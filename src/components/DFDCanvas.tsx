@@ -535,19 +535,19 @@ export default function DFDCanvas({
                   <g>
                     {/* Direction badge */}
                     <rect
-                      x={midX - 55}
-                      y={midY - labelOffset - 12}
-                      width={50}
-                      height={20}
-                      rx={4}
+                      x={midX - 65}
+                      y={midY - labelOffset - 14}
+                      width={60}
+                      height={24}
+                      rx={5}
                       fill={directionColor}
                       opacity="0.9"
                     />
                     <text
-                      x={midX - 30}
+                      x={midX - 35}
                       y={midY - labelOffset - 1}
                       textAnchor="middle"
-                      fontSize={11}
+                      fontSize={13}
                       fontWeight="700"
                       fill="white"
                       className="pointer-events-none"
@@ -558,18 +558,18 @@ export default function DFDCanvas({
                     {/* Data type badge */}
                     <rect
                       x={midX + 5}
-                      y={midY - labelOffset - 12}
-                      width={60}
-                      height={20}
-                      rx={4}
+                      y={midY - labelOffset - 14}
+                      width={70}
+                      height={24}
+                      rx={5}
                       fill={dataTypeColor}
                       opacity="0.85"
                     />
                     <text
-                      x={midX + 35}
+                      x={midX + 40}
                       y={midY - labelOffset - 1}
                       textAnchor="middle"
-                      fontSize={10}
+                      fontSize={12}
                       fontWeight="600"
                       fill="white"
                       className="pointer-events-none"
@@ -606,11 +606,11 @@ export default function DFDCanvas({
               {!isZoomedOutFar && (isCurrent || isHovered) && (() => {
                 const labelX = (getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2;
                 const labelY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 + 35;
-                const flowLabelSize = 14;
-                const descSize = 12;
-                const boxHeight = 50;
+                const flowLabelSize = 18;
+                const descSize = 15;
+                const boxHeight = 60;
                 // Estimate text width based on character count
-                const estimatedWidth = Math.max(160, Math.max(flow.label.length, flow.description.length) * 7);
+                const estimatedWidth = Math.max(200, Math.max(flow.label.length, flow.description.length) * 9);
                 
                 return (
                   <g>
@@ -620,10 +620,10 @@ export default function DFDCanvas({
                       y={labelY - boxHeight / 2}
                       width={estimatedWidth}
                       height={boxHeight}
-                      rx={6}
+                      rx={8}
                       fill="rgba(15,23,42,0.95)"
                       stroke={isCurrent ? '#22d3ee55' : '#47556955'}
-                      strokeWidth={1}
+                      strokeWidth={1.5}
                     />
                     {/* Flow label */}
                     <text
@@ -639,7 +639,7 @@ export default function DFDCanvas({
                     {/* Flow description */}
                     <text
                       x={labelX}
-                      y={labelY + 10}
+                      y={labelY + 14}
                       textAnchor="middle"
                       className="pointer-events-none"
                       fontSize={descSize}
