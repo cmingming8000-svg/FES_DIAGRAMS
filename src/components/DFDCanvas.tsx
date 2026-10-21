@@ -65,6 +65,21 @@ export default function DFDCanvas({
   const [manualControl, setManualControl] = useState(false);
   const manualControlTimer = useRef<number | null>(null);
   
+  // Drag state
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
+  
+  // Initialize node positions from data
+  useEffect(() => {
+    const positions: Record<string, { x: number; y: number }> = {};
+    nodes.forEach(node => {
+      positions[node.id] = { x: node.x, y: node.y };
+    });
+    setNodePositions(positions);
+  }, []);
+  
   // Keep ref in sync with state
   useEffect(() => {
     viewBoxRef.current = viewBox;
@@ -126,9 +141,9 @@ export default function DFDCanvas({
   const maxSafeScale = calculateMaxSafeScale();
 
   const getNodeCenter = (nodeId: string) => {
-    const node = nodes.find((n) => n.id === nodeId);
-    if (!node) return { x: 0, y: 0 };
-    return { x: node.x + NODE_WIDTH / 2, y: node.y + NODE_HEIGHT / 2 };
+    const pos = nodePositions[nodeId];
+    if (!pos) return { x: 0, y: 0 };
+    return { x: pos.x + NODE_WIDTH / 2, y: pos.y + NODE_HEIGHT / 2 };
   };
 
   const getFlowPath = (flow: DFDFlow) => {
@@ -242,21 +257,55 @@ export default function DFDCanvas({
     }
   }, []);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isPanning || !svgRef.current) return;
+  const handleNodeMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
+    e.stopPropagation();
+    const pos = nodePositions[nodeId];
+    if (!pos || !svgRef.current) return;
+    
     const svg = svgRef.current;
     const rect = svg.getBoundingClientRect();
-    const scaleX = viewBox.width / rect.width;
-    const scaleY = viewBox.height / rect.height;
-    const dx = (e.clientX - panStart.x) * scaleX;
-    const dy = (e.clientY - panStart.y) * scaleY;
-    setViewBox((vb) => ({ ...vb, x: vb.x - dx, y: vb.y - dy }));
-    setPanStart({ x: e.clientX, y: e.clientY });
-  }, [isPanning, panStart, viewBox.width, viewBox.height]);
+    const svgX = viewBox.x + (e.clientX - rect.left) * (viewBox.width / rect.width);
+    const svgY = viewBox.y + (e.clientY - rect.top) * (viewBox.height / rect.height);
+    
+    setIsDragging(true);
+    setDraggedNodeId(nodeId);
+    setDragOffset({ x: svgX - pos.x, y: svgY - pos.y });
+    setManualControl(true);
+  }, [nodePositions, viewBox]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isPanning && !isDragging && svgRef.current) {
+      const svg = svgRef.current;
+      const rect = svg.getBoundingClientRect();
+      const scaleX = viewBox.width / rect.width;
+      const scaleY = viewBox.height / rect.height;
+      const dx = (e.clientX - panStart.x) * scaleX;
+      const dy = (e.clientY - panStart.y) * scaleY;
+      setViewBox((vb) => ({ ...vb, x: vb.x - dx, y: vb.y - dy }));
+      setPanStart({ x: e.clientX, y: e.clientY });
+    } else if (isDragging && draggedNodeId && svgRef.current) {
+      const svg = svgRef.current;
+      const rect = svg.getBoundingClientRect();
+      const svgX = viewBox.x + (e.clientX - rect.left) * (viewBox.width / rect.width);
+      const svgY = viewBox.y + (e.clientY - rect.top) * (viewBox.height / rect.height);
+      
+      setNodePositions(prev => ({
+        ...prev,
+        [draggedNodeId]: {
+          x: svgX - dragOffset.x,
+          y: svgY - dragOffset.y
+        }
+      }));
+    }
+  }, [isPanning, isDragging, draggedNodeId, viewBox, panStart, dragOffset]);
 
   const handleMouseUp = useCallback(() => {
     setIsPanning(false);
+    setIsDragging(false);
+    setDraggedNodeId(null);
   }, []);
+
+
 
   // Wheel zoom
   useEffect(() => {
@@ -283,6 +332,23 @@ export default function DFDCanvas({
     return () => svg.removeEventListener('wheel', handleWheel);
   }, []);
 
+  // Keyboard shortcut to save node positions (Ctrl+Shift+Space)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.code === 'Space') {
+        e.preventDefault();
+        // Save positions to localStorage
+        localStorage.setItem('dfd-node-positions', JSON.stringify(nodePositions));
+        // Show a brief notification (could be enhanced with a proper toast)
+        console.log('Node positions saved!', nodePositions);
+        alert('Node positions saved! Copy the positions from the console.');
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [nodePositions]);
+
   // Auto-follow active nodes when step changes with smooth animation
   useEffect(() => {
     if (!role || !currentFlow || manualControl) return;
@@ -292,12 +358,16 @@ export default function DFDCanvas({
     
     if (!fromNode || !toNode) return;
     
+    // Use current positions from nodePositions state
+    const fromPos = nodePositions[currentFlow.from] || { x: fromNode.x, y: fromNode.y };
+    const toPos = nodePositions[currentFlow.to] || { x: toNode.x, y: toNode.y };
+    
     // Calculate bounding box of both nodes
     const padding = 80;
-    const minX = Math.min(fromNode.x, toNode.x) - padding;
-    const maxX = Math.max(fromNode.x + NODE_WIDTH, toNode.x + NODE_WIDTH) + padding;
-    const minY = Math.min(fromNode.y, toNode.y) - padding;
-    const maxY = Math.max(fromNode.y + NODE_HEIGHT, toNode.y + NODE_HEIGHT) + padding;
+    const minX = Math.min(fromPos.x, toPos.x) - padding;
+    const maxX = Math.max(fromPos.x + NODE_WIDTH, toPos.x + NODE_WIDTH) + padding;
+    const minY = Math.min(fromPos.y, toPos.y) - padding;
+    const maxY = Math.max(fromPos.y + NODE_HEIGHT, toPos.y + NODE_HEIGHT) + padding;
     
     const bboxWidth = maxX - minX;
     const bboxHeight = maxY - minY;
@@ -350,7 +420,7 @@ export default function DFDCanvas({
     };
     
     requestAnimationFrame(animate);
-  }, [currentStep, role, manualControl]);
+  }, [currentStep, role, manualControl, nodePositions]);
 
   return (
     <div className="relative w-full h-full">
@@ -656,6 +726,7 @@ export default function DFDCanvas({
 
         {/* Nodes */}
         {nodes.map((node) => {
+          const pos = nodePositions[node.id] || { x: node.x, y: node.y };
           const isSelected = selectedNode === node.id;
           const isHighlighted = highlightedNodeIds.includes(node.id);
           const isCurrentSource = currentFlow?.from === node.id;
@@ -663,6 +734,7 @@ export default function DFDCanvas({
           const isCurrent = isCurrentSource || isCurrentTarget;
           const isDimmed = role && !isHighlighted && !isSelected;
           const isHovered = hoveredNode === node.id;
+          const isDraggingThis = draggedNodeId === node.id;
 
           // Check if this is the auth node and no role is selected (entry point)
           const isAuthEntry = node.id === 'auth' && !role;
@@ -686,8 +758,8 @@ export default function DFDCanvas({
             : 1;
 
           // Anchor point for scaling (center of the node)
-          const cx = node.x + NODE_WIDTH / 2;
-          const cy = node.y + NODE_HEIGHT / 2;
+          const cx = pos.x + NODE_WIDTH / 2;
+          const cy = pos.y + NODE_HEIGHT / 2;
 
           // Combined scale: node tier scale × zoom counter-scale
           // Apply zoom compensation but cap at safe limits to prevent overlap
@@ -698,18 +770,21 @@ export default function DFDCanvas({
             <g
               key={node.id}
               onClick={() => {
-                if (node.id === 'auth' && onAuthNodeClick) {
-                  onAuthNodeClick();
-                } else {
-                  onSelectNode(node.id);
+                if (!isDragging) {
+                  if (node.id === 'auth' && onAuthNodeClick) {
+                    onAuthNodeClick();
+                  } else {
+                    onSelectNode(node.id);
+                  }
                 }
               }}
+              onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
               onMouseEnter={() => setHoveredNode(node.id)}
               onMouseLeave={() => setHoveredNode(null)}
-              className="cursor-pointer"
+              className={isDraggingThis ? 'cursor-grabbing' : 'cursor-grab'}
               style={{
                 opacity: nodeOpacity,
-                transition: 'opacity 0.8s ease-in-out, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                transition: isDraggingThis ? 'none' : 'opacity 0.8s ease-in-out, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
                 transformOrigin: `${cx}px ${cy}px`,
                 transform: `scale(${totalScale})`,
               }}
@@ -718,8 +793,8 @@ export default function DFDCanvas({
               {isCurrent && (
                 <>
                   <rect
-                    x={node.x - 8}
-                    y={node.y - 8}
+                    x={pos.x - 8}
+                    y={pos.y - 8}
                     width={NODE_WIDTH + 16}
                     height={NODE_HEIGHT + 16}
                     rx={node.type === 'process' ? (NODE_WIDTH + 16) / 2 : 18}
@@ -730,8 +805,8 @@ export default function DFDCanvas({
                     filter="url(#glow-strong)"
                   />
                   <rect
-                    x={node.x - 4}
-                    y={node.y - 4}
+                    x={pos.x - 4}
+                    y={pos.y - 4}
                     width={NODE_WIDTH + 8}
                     height={NODE_HEIGHT + 8}
                     rx={node.type === 'process' ? (NODE_WIDTH + 8) / 2 : 16}
@@ -746,8 +821,8 @@ export default function DFDCanvas({
               {isAuthEntry && (
                 <>
                   <motion.rect
-                    x={node.x - 10}
-                    y={node.y - 10}
+                    x={pos.x - 10}
+                    y={pos.y - 10}
                     width={NODE_WIDTH + 20}
                     height={NODE_HEIGHT + 20}
                     rx={node.type === 'process' ? (NODE_WIDTH + 20) / 2 : 20}
@@ -760,8 +835,8 @@ export default function DFDCanvas({
                     filter="url(#glow-strong)"
                   />
                   <rect
-                    x={node.x - 5}
-                    y={node.y - 5}
+                    x={pos.x - 5}
+                    y={pos.y - 5}
                     width={NODE_WIDTH + 10}
                     height={NODE_HEIGHT + 10}
                     rx={node.type === 'process' ? (NODE_WIDTH + 10) / 2 : 17}
@@ -776,8 +851,8 @@ export default function DFDCanvas({
               {node.type === 'datastore' ? (
                 <>
                   <rect
-                    x={node.x}
-                    y={node.y}
+                    x={pos.x}
+                    y={pos.y}
                     width={NODE_WIDTH}
                     height={NODE_HEIGHT}
                     rx={4}
@@ -786,8 +861,8 @@ export default function DFDCanvas({
                     strokeWidth={isAuthEntry ? 2.5 : isCurrent ? 2.5 : isHovered ? 1.8 : 1.2}
                     className="transition-all duration-300"
                   />
-                  <line x1={node.x} y1={node.y + 10} x2={node.x + NODE_WIDTH} y2={node.y + 10} stroke={`${node.color}44`} strokeWidth="0.8" />
-                  <line x1={node.x} y1={node.y + NODE_HEIGHT - 10} x2={node.x + NODE_WIDTH} y2={node.y + NODE_HEIGHT - 10} stroke={`${node.color}44`} strokeWidth="0.8" />
+                  <line x1={pos.x} y1={pos.y + 10} x2={pos.x + NODE_WIDTH} y2={pos.y + 10} stroke={`${node.color}44`} strokeWidth="0.8" />
+                  <line x1={pos.x} y1={pos.y + NODE_HEIGHT - 10} x2={pos.x + NODE_WIDTH} y2={pos.y + NODE_HEIGHT - 10} stroke={`${node.color}44`} strokeWidth="0.8" />
                 </>
               ) : node.type === 'process' ? (
                 <circle
@@ -801,8 +876,8 @@ export default function DFDCanvas({
                 />
               ) : (
                 <rect
-                  x={node.x}
-                  y={node.y}
+                  x={pos.x}
+                  y={pos.y}
                   width={NODE_WIDTH}
                   height={NODE_HEIGHT}
                   rx={12}
@@ -819,7 +894,7 @@ export default function DFDCanvas({
                 if (!IconComponent) return null;
                 const iconSizePx = 48;
                 // Center icon vertically in the node (account for label space)
-                const iconY = node.y + 35;
+                const iconY = pos.y + 35;
                 return (
                   <foreignObject
                     x={cx - iconSizePx / 2}
@@ -846,7 +921,7 @@ export default function DFDCanvas({
               {!isZoomedOutFar && (
                 <text
                   x={cx}
-                  y={node.y + 75}
+                  y={pos.y + 75}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
                   fontSize={24}
@@ -864,7 +939,7 @@ export default function DFDCanvas({
               {!isZoomedOutMedium && (
                 <text
                   x={cx}
-                  y={node.y + 98}
+                  y={pos.y + 98}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
                   fontSize={16}
@@ -878,7 +953,7 @@ export default function DFDCanvas({
               {isAuthEntry && !isZoomedOutFar && (
                 <text
                   x={cx}
-                  y={node.y + NODE_HEIGHT + 22}
+                  y={pos.y + NODE_HEIGHT + 22}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
                   fontSize={14}
@@ -892,8 +967,8 @@ export default function DFDCanvas({
               {/* Pulse ring for current step nodes */}
               {isCurrent && (
                 <motion.rect
-                  x={node.x - 12}
-                  y={node.y - 12}
+                  x={pos.x - 12}
+                  y={pos.y - 12}
                   width={NODE_WIDTH + 24}
                   height={NODE_HEIGHT + 24}
                   rx={node.type === 'process' ? (NODE_WIDTH + 24) / 2 : 22}
