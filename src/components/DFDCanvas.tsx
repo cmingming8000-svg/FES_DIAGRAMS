@@ -11,6 +11,7 @@ interface DFDCanvasProps {
   currentStep: number;
   role: UserRole | null;
   onSelectNode: (id: string) => void;
+  onAuthNodeClick?: (screenX: number, screenY: number) => void;
 }
 
 const NODE_WIDTH = 120;
@@ -26,6 +27,7 @@ export default function DFDCanvas({
   currentStep,
   role,
   onSelectNode,
+  onAuthNodeClick,
 }: DFDCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [viewBox, setViewBox] = useState({ x: -20, y: 20, width: 1400, height: 880 });
@@ -333,6 +335,9 @@ export default function DFDCanvas({
           const isDimmed = role && !isHighlighted && !isSelected;
           const isHovered = hoveredNode === node.id;
 
+          // Check if this is the auth node and no role is selected (entry point)
+          const isAuthEntry = node.id === 'auth' && !role;
+
           // Three tiers of visual prominence
           // current > highlighted > dimmed
           const nodeScale = isDimmed
@@ -366,7 +371,13 @@ export default function DFDCanvas({
           return (
             <g
               key={node.id}
-              onClick={() => onSelectNode(node.id)}
+              onClick={(e) => {
+                if (node.id === 'auth' && onAuthNodeClick) {
+                  onAuthNodeClick(e.clientX, e.clientY);
+                } else {
+                  onSelectNode(node.id);
+                }
+              }}
               onMouseEnter={() => setHoveredNode(node.id)}
               onMouseLeave={() => setHoveredNode(null)}
               className="cursor-pointer"
@@ -405,6 +416,36 @@ export default function DFDCanvas({
                 </>
               )}
 
+              {/* Pulsing glow for auth entry point */}
+              {isAuthEntry && (
+                <>
+                  <motion.rect
+                    x={node.x - 10}
+                    y={node.y - 10}
+                    width={NODE_WIDTH + 20}
+                    height={NODE_HEIGHT + 20}
+                    rx={node.type === 'process' ? (NODE_WIDTH + 20) / 2 : 20}
+                    fill="none"
+                    stroke="#06b6d4"
+                    strokeWidth="2"
+                    initial={{ opacity: 0.3 }}
+                    animate={{ opacity: [0.3, 0.8, 0.3] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    filter="url(#glow-strong)"
+                  />
+                  <rect
+                    x={node.x - 5}
+                    y={node.y - 5}
+                    width={NODE_WIDTH + 10}
+                    height={NODE_HEIGHT + 10}
+                    rx={node.type === 'process' ? (NODE_WIDTH + 10) / 2 : 17}
+                    fill="#06b6d415"
+                    stroke="#06b6d4"
+                    strokeWidth="2.5"
+                  />
+                </>
+              )}
+
               {/* Node shape */}
               {node.type === 'datastore' ? (
                 <>
@@ -414,9 +455,9 @@ export default function DFDCanvas({
                     width={NODE_WIDTH}
                     height={NODE_HEIGHT}
                     rx={4}
-                    fill={isCurrent ? `${node.color}30` : isHovered ? `${node.color}25` : `${node.color}15`}
-                    stroke={isCurrent ? node.color : isHovered ? `${node.color}aa` : `${node.color}66`}
-                    strokeWidth={isCurrent ? 2.5 : isHovered ? 1.8 : 1.2}
+                    fill={isAuthEntry ? '#06b6d430' : isCurrent ? `${node.color}30` : isHovered ? `${node.color}25` : `${node.color}15`}
+                    stroke={isAuthEntry ? '#06b6d4' : isCurrent ? node.color : isHovered ? `${node.color}aa` : `${node.color}66`}
+                    strokeWidth={isAuthEntry ? 2.5 : isCurrent ? 2.5 : isHovered ? 1.8 : 1.2}
                     className="transition-all duration-300"
                   />
                   <line x1={node.x} y1={node.y + 10} x2={node.x + NODE_WIDTH} y2={node.y + 10} stroke={`${node.color}44`} strokeWidth="0.8" />
@@ -427,9 +468,9 @@ export default function DFDCanvas({
                   cx={cx}
                   cy={cy}
                   r={NODE_WIDTH / 2 - 2}
-                  fill={isCurrent ? `${node.color}30` : isHovered ? `${node.color}25` : `${node.color}15`}
-                  stroke={isCurrent ? node.color : isHovered ? `${node.color}aa` : `${node.color}66`}
-                  strokeWidth={isCurrent ? 2.5 : isHovered ? 1.8 : 1.2}
+                  fill={isAuthEntry ? '#06b6d430' : isCurrent ? `${node.color}30` : isHovered ? `${node.color}25` : `${node.color}15`}
+                  stroke={isAuthEntry ? '#06b6d4' : isCurrent ? node.color : isHovered ? `${node.color}aa` : `${node.color}66`}
+                  strokeWidth={isAuthEntry ? 2.5 : isCurrent ? 2.5 : isHovered ? 1.8 : 1.2}
                   className="transition-all duration-300"
                 />
               ) : (
@@ -439,9 +480,9 @@ export default function DFDCanvas({
                   width={NODE_WIDTH}
                   height={NODE_HEIGHT}
                   rx={12}
-                  fill={isCurrent ? `${node.color}30` : isHovered ? `${node.color}25` : `${node.color}15`}
-                  stroke={isCurrent ? node.color : isHovered ? `${node.color}aa` : `${node.color}66`}
-                  strokeWidth={isCurrent ? 2.5 : isHovered ? 1.8 : 1.2}
+                  fill={isAuthEntry ? '#06b6d430' : isCurrent ? `${node.color}30` : isHovered ? `${node.color}25` : `${node.color}15`}
+                  stroke={isAuthEntry ? '#06b6d4' : isCurrent ? node.color : isHovered ? `${node.color}aa` : `${node.color}66`}
+                  strokeWidth={isAuthEntry ? 2.5 : isCurrent ? 2.5 : isHovered ? 1.8 : 1.2}
                   className="transition-all duration-300"
                 />
               )}
@@ -487,6 +528,22 @@ export default function DFDCanvas({
               >
                 {node.type === 'external' ? 'External Entity' : node.type === 'process' ? 'Process' : 'Data Store'}
               </text>
+
+              {/* "Click to login" hint for auth entry point */}
+              {isAuthEntry && (
+                <text
+                  x={cx}
+                  y={node.y + NODE_HEIGHT + 18}
+                  textAnchor="middle"
+                  className="pointer-events-none select-none"
+                  fontSize={9 * zoomScale}
+                  fontWeight="600"
+                  fill="#06b6d4"
+                  transform={`translate(${cx}, ${node.y + NODE_HEIGHT + 18}) scale(${zoomScale}) translate(${-cx}, ${-node.y - NODE_HEIGHT - 18})`}
+                >
+                  Click to login →
+                </text>
+              )}
 
               {/* Pulse ring for current step nodes */}
               {isCurrent && (

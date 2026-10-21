@@ -1,14 +1,16 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import RoleSelector from './components/RoleSelector';
 import DFDCanvas from './components/DFDCanvas';
 import InfoPanel from './components/InfoPanel';
+import RolePopup from './components/RolePopup';
 import { nodes, flows, UserRole, roleDescriptions } from './data/dfdData';
 
 function App() {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [showRolePopup, setShowRolePopup] = useState(false);
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
 
   // Get flows relevant to the selected role
   const roleFlows = useMemo(() => {
@@ -135,9 +137,19 @@ function App() {
 
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Panel - Role Selector & Info */}
+          {/* Left Panel - Info */}
           <div className="w-80 flex-shrink-0 border-r border-white/5 p-4 overflow-y-auto flex flex-col gap-5">
-            <RoleSelector onSelectRole={handleSelectRole} selectedRole={selectedRole} />
+            {!selectedRole && (
+              <div className="bg-slate-900/50 backdrop-blur border border-white/10 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">🔐</span>
+                  <h3 className="text-sm font-bold text-white">Get Started</h3>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Click the <span className="text-cyan-400 font-semibold">Authentication</span> node on the canvas to choose your login role and trace the data flow.
+                </p>
+              </div>
+            )}
 
             <AnimatePresence mode="wait">
               {selectedRole && (
@@ -224,7 +236,7 @@ function App() {
                 className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20"
               >
                 <div className="px-4 py-2 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-sm text-slate-300">
-                  👆 Select a role above to trace its data flow, or click any node to explore
+                  🔐 Click the <span className="text-cyan-400 font-semibold">Authentication</span> node to login
                 </div>
               </motion.div>
             )}
@@ -239,7 +251,23 @@ function App() {
               currentStep={currentStep}
               role={selectedRole}
               onSelectNode={handleSelectNode}
+              onAuthNodeClick={(screenX, screenY) => {
+                setPopupPosition({ x: screenX, y: screenY });
+                setShowRolePopup(true);
+              }}
             />
+
+            {/* Role Selection Popup */}
+            {showRolePopup && (
+              <RolePopup
+                position={popupPosition}
+                onSelectRole={(role) => {
+                  handleSelectRole(role);
+                  setShowRolePopup(false);
+                }}
+                onClose={() => setShowRolePopup(false)}
+              />
+            )}
           </div>
         </div>
 
