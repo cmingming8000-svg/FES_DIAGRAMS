@@ -373,6 +373,66 @@ function App() {
         `;
         
         document.body.appendChild(modal);
+      } else if (viewMode === 'sad' && e.ctrlKey && e.altKey && e.code === 'Space') {
+        // Ctrl+Alt+Space: Save current zoom for selected component (SAD mode only)
+        e.preventDefault();
+        
+        if (selectedComponent) {
+          sadCanvasRef.current?.saveZoomForComponent(selectedComponent);
+          
+          // Show feedback
+          const toast = document.createElement('div');
+          toast.style.cssText = `
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(6, 182, 212, 0.95);
+            border: 2px solid #22d3ee;
+            border-radius: 12px;
+            padding: 16px 24px;
+            z-index: 9999;
+            box-shadow: 0 10px 40px rgba(6, 182, 212, 0.4);
+            animation: slideDown 0.3s ease-out;
+          `;
+          toast.innerHTML = `
+            <div style="color: white; font-size: 14px; font-weight: 600; text-align: center;">
+              ✅ Zoom saved for <strong>${selectedComponent}</strong>
+            </div>
+            <div style="color: rgba(255,255,255,0.8); font-size: 12px; text-align: center; margin-top: 4px;">
+              Press Ctrl+Shift+Space to export all data
+            </div>
+          `;
+          document.body.appendChild(toast);
+          
+          setTimeout(() => {
+            toast.style.animation = 'fadeOut 0.3s ease-out';
+            setTimeout(() => document.body.removeChild(toast), 300);
+          }, 2000);
+        } else {
+          // Show warning if no component selected
+          const toast = document.createElement('div');
+          toast.style.cssText = `
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.95);
+            border: 2px solid #f87171;
+            border-radius: 12px;
+            padding: 16px 24px;
+            z-index: 9999;
+            box-shadow: 0 10px 40px rgba(239, 68, 68, 0.4);
+          `;
+          toast.innerHTML = `
+            <div style="color: white; font-size: 14px; font-weight: 600; text-align: center;">
+              ⚠️ Select a component first
+            </div>
+          `;
+          document.body.appendChild(toast);
+          
+          setTimeout(() => document.body.removeChild(toast), 2000);
+        }
       } else if (viewMode === 'sad' && e.ctrlKey && e.shiftKey && e.code === 'Space') {
         // Ctrl+Shift+Space: Export all SAD data (SAD mode only)
         e.preventDefault();
@@ -574,10 +634,17 @@ function App() {
                   <span className="mx-2 text-cyan-500">|</span>
                   <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Ctrl</kbd>
                   <span>+</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Alt</kbd>
+                  <span>+</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Space</kbd>
+                  <span className="ml-1">Save Zoom</span>
+                  <span className="mx-2 text-cyan-500">|</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Ctrl</kbd>
+                  <span>+</span>
                   <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Shift</kbd>
                   <span>+</span>
                   <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-200 font-mono text-[10px]">Space</kbd>
-                  <span className="ml-1">Save Positions</span>
+                  <span className="ml-1">Export All</span>
                 </div>
               )}
               <div className="flex items-center gap-2 text-xs text-slate-500">

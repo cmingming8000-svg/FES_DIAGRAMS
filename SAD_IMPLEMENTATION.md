@@ -119,6 +119,7 @@ src/
 ### In SAD Mode:
 - `→` or `↓` - Navigate to next component in tour
 - `←` or `↑` - Navigate to previous component in tour
+- `Ctrl+Alt+Space` - Save current zoom for selected component
 - `Ctrl+Shift+Space` - Export all positions and zooms
 - `Escape` - Reset view and selections
 
@@ -208,6 +209,8 @@ All modes maintain independent state and don't interfere with each other.
 | Arrow key tour | ✅ (steps) | ✅ (entities) | ✅ (components) |
 | Position saving | ✅ | ✅ | ✅ |
 | Saved zooms | ❌ | ✅ | ✅ |
+| Ctrl+Alt+Space (save zoom) | ❌ | ✅ | ✅ |
+| Ctrl+Shift+Space (export) | ✅ | ✅ | ✅ |
 | Sidebars | ❌ | ❌ | ❌ |
 | Top-right controls | ❌ | ❌ | ❌ |
 | Smooth animations | ✅ | ✅ | ✅ |
@@ -262,6 +265,7 @@ Potential improvements:
 - [x] Highlighting works correctly
 - [x] Connections render correctly
 - [x] Protocol labels display
+- [x] Ctrl+Alt+Space saves zoom for selected component
 - [x] Ctrl+Shift+Space exports data
 - [x] Mode switching resets state
 - [x] Build succeeds without errors
