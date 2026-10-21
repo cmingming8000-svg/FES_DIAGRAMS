@@ -34,11 +34,11 @@ export default function DFDCanvas({
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredFlow, setHoveredFlow] = useState<string | null>(null);
 
-  // Calculate zoom scale for text elements - INVERSE of zoom so text stays readable
-  // When zoomed in (small viewBox), text shrinks slightly but stays readable
-  // When zoomed out (large viewBox), text grows significantly to compensate
-  const rawZoomScale = BASE_VIEWBOX_WIDTH / viewBox.width;
-  const zoomScale = Math.max(0.6, Math.min(4.5, rawZoomScale));
+  // Calculate zoom scale for text elements
+  // When zoomed IN (small viewBox): text shrinks naturally (you're closer)
+  // When zoomed OUT (large viewBox): text grows to stay readable
+  const rawZoomScale = viewBox.width / BASE_VIEWBOX_WIDTH;
+  const zoomScale = Math.max(0.7, Math.min(3.0, rawZoomScale));
 
   const getNodeCenter = (nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
@@ -163,7 +163,7 @@ export default function DFDCanvas({
           +
         </button>
         <div className="px-2 py-0.5 rounded text-[10px] text-slate-400 bg-slate-800/60 backdrop-blur border border-white/5 font-mono">
-          {Math.round(rawZoomScale * 100)}%
+          {Math.round((BASE_VIEWBOX_WIDTH / viewBox.width) * 100)}%
         </div>
         <button
           onClick={zoomOut}
