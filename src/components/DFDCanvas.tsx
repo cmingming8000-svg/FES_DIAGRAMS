@@ -713,14 +713,14 @@ const DFDCanvas = memo(forwardRef<DFDCanvasHandle, DFDCanvasProps>(function DFDC
                     <rect
                       x={midX + 5}
                       y={midY - labelOffset - 14}
-                      width={70}
+                      width={85}
                       height={24}
                       rx={5}
                       fill={dataTypeColor}
                       opacity="0.85"
                     />
                     <text
-                      x={midX + 40}
+                      x={midX + 47.5}
                       y={midY - labelOffset - 1}
                       textAnchor="middle"
                       fontSize={12}

@@ -485,7 +485,8 @@ export const flows: DFDFlow[] = [
     label: 'Scoped data',
     description: 'Faculty receives role-scoped bootstrap data (own results only)',
     roles: ['faculty'],
-    stepOrder: { student: null, hr_qa: null, faculty: 3, dean: null }
+    stepOrder: { student: null, hr_qa: null, faculty: 2, dean: null },
+    hasReturnFlow: true
   },
   {
     id: 'f16',
@@ -494,7 +495,7 @@ export const flows: DFDFlow[] = [
     label: 'Released results',
     description: 'After HR/QA release, faculty can view their evaluation results',
     roles: ['faculty'],
-    stepOrder: { student: null, hr_qa: null, faculty: 4, dean: null }
+    stepOrder: { student: null, hr_qa: null, faculty: 3, dean: null }
   },
   {
     id: 'f17',
@@ -503,7 +504,7 @@ export const flows: DFDFlow[] = [
     label: 'Request insights',
     description: 'Faculty views TNA-based professional development recommendations',
     roles: ['faculty'],
-    stepOrder: { student: null, hr_qa: null, faculty: 5, dean: null },
+    stepOrder: { student: null, hr_qa: null, faculty: 4, dean: null },
     hasReturnFlow: true
   },
 
@@ -563,7 +564,7 @@ export const flows: DFDFlow[] = [
     label: 'Analytics data',
     description: 'TNA snapshots feed into report generation',
     roles: ['hr_qa', 'dean', 'faculty'],
-    stepOrder: { student: null, hr_qa: 8, faculty: 6, dean: 7 },
+    stepOrder: { student: null, hr_qa: 8, faculty: 5, dean: 7 },
     hasReturnFlow: true
   },
   {
@@ -573,7 +574,7 @@ export const flows: DFDFlow[] = [
     label: 'PDF/Excel reports',
     description: 'Faculty receives printable evaluation reports',
     roles: ['faculty'],
-    stepOrder: { student: null, hr_qa: null, faculty: 7, dean: null },
+    stepOrder: { student: null, hr_qa: null, faculty: 6, dean: null },
     hasReturnFlow: true
   },
   {
@@ -609,7 +610,7 @@ export const roleDescriptions: Record<UserRole, { title: string; subtitle: strin
     title: 'Faculty',
     subtitle: 'View evaluation results & development insights',
     color: '#8b5cf6',
-    steps: 7
+    steps: 6
   },
   hr_qa: {
     title: 'HR / QA',
