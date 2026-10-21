@@ -120,7 +120,7 @@ export default function DFDCanvas({
     const nodeDiagonal = Math.sqrt(NODE_WIDTH * NODE_WIDTH + NODE_HEIGHT * NODE_HEIGHT);
     const maxScale = (minDistance * 0.95) / nodeDiagonal;
     
-    return Math.min(5.3, maxScale); // Cap at 5.3 (4.6 * 1.15) even if more space available
+    return Math.min(6.1, maxScale); // Cap at 6.1 (5.3 * 1.15) even if more space available
   };
 
   const maxSafeScale = calculateMaxSafeScale();
