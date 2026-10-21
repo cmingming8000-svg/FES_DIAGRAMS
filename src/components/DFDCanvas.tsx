@@ -57,10 +57,36 @@ export default function DFDCanvas({
 }: DFDCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [viewBox, setViewBox] = useState({ x: -20, y: 20, width: 1700, height: 1000 });
+  const viewBoxRef = useRef(viewBox);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredFlow, setHoveredFlow] = useState<string | null>(null);
+  const [manualControl, setManualControl] = useState(false);
+  const manualControlTimer = useRef<number | null>(null);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    viewBoxRef.current = viewBox;
+  }, [viewBox]);
+  
+  // Reset manual control flag after a delay
+  useEffect(() => {
+    if (manualControl) {
+      if (manualControlTimer.current) {
+        clearTimeout(manualControlTimer.current);
+      }
+      manualControlTimer.current = window.setTimeout(() => {
+        setManualControl(false);
+      }, 2000); // Re-enable auto-follow after 2 seconds of no manual interaction
+    }
+    
+    return () => {
+      if (manualControlTimer.current) {
+        clearTimeout(manualControlTimer.current);
+      }
+    };
+  }, [manualControl, viewBox]);
 
   // Calculate zoom scale for text elements
   // When zoomed IN (small viewBox): text shrinks naturally (you're closer)
@@ -114,6 +140,7 @@ export default function DFDCanvas({
 
   // Zoom controls
   const zoomIn = useCallback(() => {
+    setManualControl(true);
     setViewBox((vb) => {
       const newWidth = Math.max(500, vb.width * 0.8);
       const newHeight = Math.max(300, vb.height * 0.8);
@@ -127,6 +154,7 @@ export default function DFDCanvas({
   }, []);
 
   const zoomOut = useCallback(() => {
+    setManualControl(true);
     setViewBox((vb) => {
       const newWidth = Math.min(3400, vb.width * 1.25);
       const newHeight = Math.min(2000, vb.height * 1.25);
@@ -140,6 +168,7 @@ export default function DFDCanvas({
   }, []);
 
   const resetView = useCallback(() => {
+    setManualControl(true);
     setViewBox({ x: -20, y: 20, width: 1700, height: 1000 });
   }, []);
 
@@ -147,6 +176,7 @@ export default function DFDCanvas({
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 0 && (e.target as SVGElement).tagName === 'svg' || (e.target as SVGElement).tagName === 'rect') {
       setIsPanning(true);
+      setManualControl(true);
       setPanStart({ x: e.clientX, y: e.clientY });
     }
   }, []);
@@ -173,6 +203,7 @@ export default function DFDCanvas({
     if (!svg) return;
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
+      setManualControl(true);
       const factor = e.deltaY > 0 ? 1.1 : 0.9;
       setViewBox((vb) => {
         const newWidth = Math.max(500, Math.min(3400, vb.width * factor));
@@ -190,6 +221,56 @@ export default function DFDCanvas({
     svg.addEventListener('wheel', handleWheel, { passive: false });
     return () => svg.removeEventListener('wheel', handleWheel);
   }, []);
+
+  // Auto-follow active nodes when step changes with smooth animation
+  useEffect(() => {
+    if (!role || !currentFlow || manualControl) return;
+    
+    const fromNode = nodes.find(n => n.id === currentFlow.from);
+    const toNode = nodes.find(n => n.id === currentFlow.to);
+    
+    if (!fromNode || !toNode) return;
+    
+    // Calculate bounding box of both nodes with padding
+    const padding = 200;
+    const minX = Math.min(fromNode.x, toNode.x) - padding;
+    const maxX = Math.max(fromNode.x + NODE_WIDTH, toNode.x + NODE_WIDTH) + padding;
+    const minY = Math.min(fromNode.y, toNode.y) - padding;
+    const maxY = Math.max(fromNode.y + NODE_HEIGHT, toNode.y + NODE_HEIGHT) + padding;
+    
+    const targetViewBox = {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY
+    };
+    
+    // Animate viewBox transition
+    const duration = 600; // ms
+    const startTime = performance.now();
+    const startViewBox = { ...viewBoxRef.current };
+    
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function (ease-out-cubic)
+      const eased = 1 - Math.pow(1 - progress, 3);
+      
+      setViewBox({
+        x: startViewBox.x + (targetViewBox.x - startViewBox.x) * eased,
+        y: startViewBox.y + (targetViewBox.y - startViewBox.y) * eased,
+        width: startViewBox.width + (targetViewBox.width - startViewBox.width) * eased,
+        height: startViewBox.height + (targetViewBox.height - startViewBox.height) * eased
+      });
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [currentStep, role, manualControl]);
 
   return (
     <div className="relative w-full h-full">
