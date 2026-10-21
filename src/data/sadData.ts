@@ -38,10 +38,10 @@ export const sadFlowSequences: Record<SADClientType, SADFlowStep[]> = {
     { componentId: 'client-entry', description: 'Entry point' },
     { componentId: 'student-client', connectionId: 'c1', description: 'Student accesses web interface' },
     { componentId: 'load-balancer', connectionId: 'c4', description: 'Request routed through load balancer' },
-    { componentId: 'web-server', description: 'Static assets served' },
+    { componentId: 'web-server', connectionId: 'c20', description: 'Static assets served, forwards to API' },
     { componentId: 'api-server', connectionId: 'c6', description: 'API handles evaluation request' },
     { componentId: 'auth-service', connectionId: 'c10', description: 'Authentication & session created' },
-    { componentId: 'session-store', description: 'Session stored' },
+    { componentId: 'session-store', connectionId: 'c16', description: 'Session stored, validates for evaluation' },
     { componentId: 'evaluation-service', connectionId: 'c8', description: 'Evaluation processed' },
     { componentId: 'pii-redaction-service', connectionId: 'c14', description: 'PII redacted for privacy' },
     { componentId: 'postgresql', description: 'Evaluation data saved' }
@@ -52,7 +52,7 @@ export const sadFlowSequences: Record<SADClientType, SADFlowStep[]> = {
     { componentId: 'load-balancer', connectionId: 'c5', description: 'Request routed through load balancer' },
     { componentId: 'api-server', connectionId: 'c6', description: 'API handles request' },
     { componentId: 'auth-service', connectionId: 'c10', description: 'Authentication verified' },
-    { componentId: 'session-store', description: 'Session validated' },
+    { componentId: 'session-store', connectionId: 'c16', description: 'Session validated for evaluation access' },
     { componentId: 'evaluation-service', connectionId: 'c9', description: 'Evaluation results retrieved' },
     { componentId: 'postgresql', connectionId: 'c11', description: 'Data queried from database' },
     { componentId: 'tna-engine', connectionId: 'c12', description: 'TNA insights computed' },
@@ -64,22 +64,22 @@ export const sadFlowSequences: Record<SADClientType, SADFlowStep[]> = {
     { componentId: 'load-balancer', connectionId: 'c5', description: 'Request routed through load balancer' },
     { componentId: 'api-server', connectionId: 'c6', description: 'API handles admin request' },
     { componentId: 'auth-service', connectionId: 'c10', description: 'HR/QA authentication' },
-    { componentId: 'session-store', description: 'Admin session created' },
-    { componentId: 'evaluation-service', connectionId: 'c9', description: 'Manage evaluations & criteria' },
+    { componentId: 'session-store', connectionId: 'c16', description: 'Admin session created, validates for evaluation' },
+    { componentId: 'evaluation-service', connectionId: 'c8', description: 'Manage evaluations & criteria' },
     { componentId: 'pii-redaction-service', connectionId: 'c14', description: 'Verify PII redaction' },
-    { componentId: 'postgresql', connectionId: 'c13', description: 'Update evaluation data' },
+    { componentId: 'postgresql', connectionId: 'c18', description: 'Update evaluation data, triggers audit' },
     { componentId: 'audit-log', description: 'All admin actions logged' }
   ],
   dean: [
     { componentId: 'client-entry', description: 'Entry point' },
-    { componentId: 'dean-client', connectionId: 'c3', description: 'Dean accesses analytics interface' },
+    { componentId: 'dean-client', connectionId: 'c15', description: 'Dean accesses analytics interface' },
     { componentId: 'load-balancer', connectionId: 'c5', description: 'Request routed through load balancer' },
     { componentId: 'api-server', connectionId: 'c6', description: 'API handles analytics request' },
     { componentId: 'auth-service', connectionId: 'c10', description: 'Dean authentication' },
-    { componentId: 'session-store', description: 'Dean session created' },
-    { componentId: 'tna-engine', connectionId: 'c11', description: 'Generate department analytics' },
-    { componentId: 'postgresql', connectionId: 'c12', description: 'Query aggregated data' },
-    { componentId: 'evaluation-service', description: 'View evaluation summaries' },
+    { componentId: 'session-store', connectionId: 'c17', description: 'Dean session created, validates for analytics' },
+    { componentId: 'tna-engine', connectionId: 'c12', description: 'Generate department analytics' },
+    { componentId: 'postgresql', description: 'Query aggregated data' },
+    { componentId: 'evaluation-service', connectionId: 'c19', description: 'View evaluation summaries, logs access' },
     { componentId: 'audit-log', description: 'Access logged for compliance' }
   ]
 };
@@ -357,5 +357,45 @@ export const connections: SADConnection[] = [
     label: 'TCP',
     protocol: 'TCP/5432',
     description: 'Redacted data storage'
+  },
+  {
+    id: 'c16',
+    from: 'session-store',
+    to: 'evaluation-service',
+    label: 'Internal',
+    protocol: 'Internal',
+    description: 'Session validation for evaluations'
+  },
+  {
+    id: 'c17',
+    from: 'session-store',
+    to: 'tna-engine',
+    label: 'Internal',
+    protocol: 'Internal',
+    description: 'Session validation for analytics'
+  },
+  {
+    id: 'c18',
+    from: 'postgresql',
+    to: 'audit-log',
+    label: 'TCP',
+    protocol: 'TCP/5432',
+    description: 'Audit trail from database operations'
+  },
+  {
+    id: 'c19',
+    from: 'evaluation-service',
+    to: 'audit-log',
+    label: 'TCP',
+    protocol: 'TCP/5432',
+    description: 'Evaluation actions logged'
+  },
+  {
+    id: 'c20',
+    from: 'web-server',
+    to: 'api-server',
+    label: 'HTTP',
+    protocol: 'HTTP',
+    description: 'Dynamic request forwarding'
   }
 ];
