@@ -21,7 +21,7 @@ interface DFDCanvasProps {
 
 const NODE_WIDTH = 120;
 const NODE_HEIGHT = 60;
-const BASE_VIEWBOX_WIDTH = 1400;
+const BASE_VIEWBOX_WIDTH = 1700;
 
 // Icon mapping
 const iconMap: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
@@ -56,7 +56,7 @@ export default function DFDCanvas({
   onAuthNodeClick,
 }: DFDCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [viewBox, setViewBox] = useState({ x: -20, y: 20, width: 1400, height: 880 });
+  const [viewBox, setViewBox] = useState({ x: -20, y: 20, width: 1700, height: 1000 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
@@ -66,10 +66,11 @@ export default function DFDCanvas({
   // When zoomed IN (small viewBox): text shrinks naturally (you're closer)
   // When zoomed OUT (large viewBox): text grows to stay readable
   const rawZoomScale = viewBox.width / BASE_VIEWBOX_WIDTH;
-  const zoomScale = Math.max(0.7, Math.min(2.0, rawZoomScale));
+  const zoomScale = Math.max(0.6, Math.min(1.8, rawZoomScale));
   
   // Hide secondary text when zoomed out too far to prevent overlaps
-  const isZoomedOutFar = rawZoomScale > 1.8;
+  const isZoomedOutFar = rawZoomScale > 1.4;
+  const isZoomedOutMedium = rawZoomScale > 1.1;
 
   const getNodeCenter = (nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
@@ -114,8 +115,8 @@ export default function DFDCanvas({
   // Zoom controls
   const zoomIn = useCallback(() => {
     setViewBox((vb) => {
-      const newWidth = Math.max(400, vb.width * 0.8);
-      const newHeight = Math.max(250, vb.height * 0.8);
+      const newWidth = Math.max(500, vb.width * 0.8);
+      const newHeight = Math.max(300, vb.height * 0.8);
       return {
         x: vb.x + (vb.width - newWidth) * 0.5,
         y: vb.y + (vb.height - newHeight) * 0.5,
@@ -127,8 +128,8 @@ export default function DFDCanvas({
 
   const zoomOut = useCallback(() => {
     setViewBox((vb) => {
-      const newWidth = Math.min(3500, vb.width * 1.25);
-      const newHeight = Math.min(2200, vb.height * 1.25);
+      const newWidth = Math.min(3400, vb.width * 1.25);
+      const newHeight = Math.min(2000, vb.height * 1.25);
       return {
         x: vb.x - (newWidth - vb.width) * 0.5,
         y: vb.y - (newHeight - vb.height) * 0.5,
@@ -139,7 +140,7 @@ export default function DFDCanvas({
   }, []);
 
   const resetView = useCallback(() => {
-    setViewBox({ x: -20, y: 20, width: 1400, height: 880 });
+    setViewBox({ x: -20, y: 20, width: 1700, height: 1000 });
   }, []);
 
   // Pan handling
@@ -174,8 +175,8 @@ export default function DFDCanvas({
       e.preventDefault();
       const factor = e.deltaY > 0 ? 1.1 : 0.9;
       setViewBox((vb) => {
-        const newWidth = Math.max(400, Math.min(3500, vb.width * factor));
-        const newHeight = Math.max(250, Math.min(2200, vb.height * factor));
+        const newWidth = Math.max(500, Math.min(3400, vb.width * factor));
+        const newHeight = Math.max(300, Math.min(2000, vb.height * factor));
         const mouseXRatio = e.offsetX / svg.clientWidth;
         const mouseYRatio = e.offsetY / svg.clientHeight;
         return {
@@ -313,8 +314,8 @@ export default function DFDCanvas({
                 filter={isCurrent ? 'url(#glow)' : undefined}
                 className="transition-all duration-500"
               />
-              {/* Data direction and type indicators for current flow */}
-              {isCurrent && (() => {
+              {/* Data direction and type indicators for current flow (hide when zoomed out) */}
+              {isCurrent && !isZoomedOutMedium && (() => {
                 const fromNode = nodes.find(n => n.id === flow.from);
                 const toNode = nodes.find(n => n.id === flow.to);
                 if (!fromNode || !toNode) return null;
@@ -424,8 +425,8 @@ export default function DFDCanvas({
                   </circle>
                 </>
               )}
-              {/* Flow label on hover or when current - counter-scaled */}
-              {(isCurrent || isHovered) && (() => {
+              {/* Flow label on hover or when current - counter-scaled (hide when zoomed out far) */}
+              {!isZoomedOutFar && (isCurrent || isHovered) && (() => {
                 const labelX = (getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2;
                 const labelY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 + 35 * zoomScale;
                 const flowLabelSize = 11 * zoomScale;
@@ -666,24 +667,26 @@ export default function DFDCanvas({
               })()}
 
               {/* Label - counter-scaled for zoom, sized by tier */}
-              <text
-                x={cx}
-                y={node.y + 40}
-                textAnchor="middle"
-                className="pointer-events-none select-none"
-                fontSize={labelSize * zoomScale}
-                fontWeight={isCurrent ? '700' : '600'}
-                fill={isCurrent ? 'white' : isDimmed ? '#94a3b8' : 'white'}
-                transform={`translate(${cx}, ${node.y + 40}) scale(${zoomScale}) translate(${-cx}, ${-node.y - 40})`}
-                style={{
-                  textShadow: isCurrent ? `0 0 8px ${node.color}` : 'none',
-                }}
-              >
-                {node.label}
-              </text>
+              {!isZoomedOutFar && (
+                <text
+                  x={cx}
+                  y={node.y + 40}
+                  textAnchor="middle"
+                  className="pointer-events-none select-none"
+                  fontSize={labelSize * zoomScale}
+                  fontWeight={isCurrent ? '700' : '600'}
+                  fill={isCurrent ? 'white' : isDimmed ? '#94a3b8' : 'white'}
+                  transform={`translate(${cx}, ${node.y + 40}) scale(${zoomScale}) translate(${-cx}, ${-node.y - 40})`}
+                  style={{
+                    textShadow: isCurrent ? `0 0 8px ${node.color}` : 'none',
+                  }}
+                >
+                  {node.label}
+                </text>
+              )}
 
               {/* Type badge - counter-scaled for zoom, sized by tier */}
-              {!isZoomedOutFar && (
+              {!isZoomedOutMedium && (
                 <text
                   x={cx}
                   y={node.y + 52}
