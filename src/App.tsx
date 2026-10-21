@@ -1,17 +1,25 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DFDCanvas from './components/DFDCanvas';
+import ERDCanvas from './components/ERDCanvas';
 import InfoPanel from './components/InfoPanel';
+import ERDInfoPanel from './components/ERDInfoPanel';
 import RolePopup from './components/RolePopup';
 import Legend from './components/Legend';
+import ModeSwitcher, { ViewMode } from './components/ModeSwitcher';
 import { nodes, flows, UserRole, roleDescriptions } from './data/dfdData';
+import { entities, relationships } from './data/erdData';
 
 function App() {
+  const [viewMode, setViewMode] = useState<ViewMode>('dfd');
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [showRolePopup, setShowRolePopup] = useState(false);
   const [legendExpanded, setLegendExpanded] = useState(true);
+  
+  // ERD state
+  const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
 
   // Get flows relevant to the selected role
   const roleFlows = useMemo(() => {
@@ -57,6 +65,11 @@ function App() {
     return nodes.find((n) => n.id === selectedNode) || null;
   }, [selectedNode]);
 
+  // Selected entity data
+  const selectedEntityData = useMemo(() => {
+    return entities.find((e) => e.id === selectedEntity) || null;
+  }, [selectedEntity]);
+
   const handleSelectRole = useCallback((role: UserRole) => {
     setSelectedRole(role);
     setCurrentStep(1);
@@ -75,10 +88,15 @@ function App() {
     setSelectedNode((prev) => (prev === id ? null : id));
   }, []);
 
+  const handleSelectEntity = useCallback((id: string) => {
+    setSelectedEntity((prev) => (prev === id ? null : id));
+  }, []);
+
   const handleReset = useCallback(() => {
     setSelectedRole(null);
     setCurrentStep(1);
     setSelectedNode(null);
+    setSelectedEntity(null);
   }, []);
 
   // Keyboard navigation
@@ -110,15 +128,18 @@ function App() {
           <div className="flex items-center justify-between max-w-[1800px] mx-auto">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-lg font-bold shadow-lg shadow-cyan-500/20">
-                DF
+                {viewMode === 'dfd' ? 'DF' : 'ER'}
               </div>
               <div>
-                <h1 className="text-lg font-bold text-white">FES Data Flow Diagram</h1>
+                <h1 className="text-lg font-bold text-white">
+                  {viewMode === 'dfd' ? 'FES Data Flow Diagram' : 'FES Entity Relationship Diagram'}
+                </h1>
                 <p className="text-xs text-slate-400">Faculty Evaluation System — Interactive Visualization</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {selectedRole && (
+              <ModeSwitcher mode={viewMode} onModeChange={setViewMode} />
+              {(selectedRole || selectedEntity) && (
                 <motion.button
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -146,68 +167,139 @@ function App() {
 
         {/* Main Content - Full width canvas */}
         <div className="flex-1 relative overflow-hidden">
-            {/* Step indicator overlay */}
-            {selectedRole && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="px-4 py-2 rounded-full text-sm font-medium border backdrop-blur-md"
-                    style={{
-                      backgroundColor: `${roleDescriptions[selectedRole].color}15`,
-                      borderColor: `${roleDescriptions[selectedRole].color}40`,
-                      color: roleDescriptions[selectedRole].color
-                    }}
+            {/* DFD Mode */}
+            {viewMode === 'dfd' && (
+              <>
+                {/* Step indicator overlay */}
+                {selectedRole && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
                   >
-                    {roleDescriptions[selectedRole].title} Flow — Step {currentStep} of {totalSteps}
-                  </div>
-                  <div className="px-2 py-1 rounded-md bg-slate-800/60 backdrop-blur border border-white/5 text-[10px] text-slate-400">
-                    ← → to navigate
-                  </div>
-                </div>
-              </motion.div>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="px-4 py-2 rounded-full text-sm font-medium border backdrop-blur-md"
+                        style={{
+                          backgroundColor: `${roleDescriptions[selectedRole].color}15`,
+                          borderColor: `${roleDescriptions[selectedRole].color}40`,
+                          color: roleDescriptions[selectedRole].color
+                        }}
+                      >
+                        {roleDescriptions[selectedRole].title} Flow — Step {currentStep} of {totalSteps}
+                      </div>
+                      <div className="px-2 py-1 rounded-md bg-slate-800/60 backdrop-blur border border-white/5 text-[10px] text-slate-400">
+                        ← → to navigate
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Instructions overlay when no role selected */}
+                {!selectedRole && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20"
+                  >
+                    <div className="px-4 py-2 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-sm text-slate-300">
+                      Click the <span className="text-cyan-400 font-semibold">AUTH</span> node to login
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* DFD Canvas */}
+                <DFDCanvas
+                  nodes={nodes}
+                  flows={flows}
+                  selectedNode={selectedNode}
+                  activeFlowIds={activeFlowIds}
+                  highlightedNodeIds={highlightedNodeIds}
+                  currentStep={currentStep}
+                  role={selectedRole}
+                  onSelectNode={handleSelectNode}
+                  onAuthNodeClick={() => {
+                    setShowRolePopup(true);
+                  }}
+                />
+
+                {/* Role Selection Popup */}
+                {showRolePopup && (
+                  <RolePopup
+                    onSelectRole={(role) => {
+                      handleSelectRole(role);
+                      setShowRolePopup(false);
+                    }}
+                    onClose={() => setShowRolePopup(false)}
+                  />
+                )}
+              </>
             )}
 
-            {/* Instructions overlay when no role selected */}
-            {!selectedRole && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20"
-              >
-                <div className="px-4 py-2 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-sm text-slate-300">
-                  Click the <span className="text-cyan-400 font-semibold">AUTH</span> node to login
-                </div>
-              </motion.div>
+            {/* ERD Mode */}
+            {viewMode === 'erd' && (
+              <>
+                {/* Entity selected indicator */}
+                {selectedEntity && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
+                  >
+                    <div className="px-4 py-2 rounded-full text-sm font-medium border backdrop-blur-md bg-cyan-900/30 border-cyan-500/40 text-cyan-300">
+                      Viewing: <span className="font-bold">{selectedEntityData?.label}</span>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Instructions overlay */}
+                {!selectedEntity && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20"
+                  >
+                    <div className="px-4 py-2 rounded-full bg-slate-800/80 backdrop-blur-md border border-white/10 text-sm text-slate-300">
+                      Click any entity to view relationships
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* ERD Canvas */}
+                <ERDCanvas
+                  entities={entities}
+                  relationships={relationships}
+                  selectedEntity={selectedEntity}
+                  onSelectEntity={handleSelectEntity}
+                />
+              </>
             )}
 
-            {/* DFD Canvas */}
-            <DFDCanvas
-              nodes={nodes}
-              flows={flows}
-              selectedNode={selectedNode}
-              activeFlowIds={activeFlowIds}
-              highlightedNodeIds={highlightedNodeIds}
-              currentStep={currentStep}
-              role={selectedRole}
-              onSelectNode={handleSelectNode}
-              onAuthNodeClick={() => {
-                setShowRolePopup(true);
-              }}
-            />
+          {/* Info Panel - DFD Mode */}
+          {viewMode === 'dfd' && selectedRole && (
+            <div className="absolute top-4 right-4 z-30">
+              <InfoPanel
+                selectedNode={selectedNodeData}
+                currentStep={currentStep}
+                role={selectedRole}
+                flows={roleFlows}
+                allFlows={flows}
+                onNextStep={handleNextStep}
+                onPrevStep={handlePrevStep}
+                totalSteps={totalSteps}
+              />
+            </div>
+          )}
 
-          {/* Role Selection Popup */}
-          {showRolePopup && (
-            <RolePopup
-              onSelectRole={(role) => {
-                handleSelectRole(role);
-                setShowRolePopup(false);
-              }}
-              onClose={() => setShowRolePopup(false)}
-            />
+          {/* Info Panel - ERD Mode */}
+          {viewMode === 'erd' && (
+            <div className="absolute top-4 right-4 z-30">
+              <ERDInfoPanel
+                selectedEntity={selectedEntityData}
+                relationships={relationships}
+                entities={entities}
+              />
+            </div>
           )}
 
           {/* Legend */}
