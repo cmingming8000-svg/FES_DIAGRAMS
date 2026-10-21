@@ -15,6 +15,7 @@ interface DFDCanvasProps {
 
 const NODE_WIDTH = 120;
 const NODE_HEIGHT = 60;
+const BASE_VIEWBOX_WIDTH = 1400;
 
 export default function DFDCanvas({
   nodes,
@@ -32,6 +33,10 @@ export default function DFDCanvas({
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredFlow, setHoveredFlow] = useState<string | null>(null);
+
+  // Calculate zoom scale for text elements (clamped to keep labels readable)
+  const rawZoomScale = viewBox.width / BASE_VIEWBOX_WIDTH;
+  const zoomScale = Math.max(0.5, Math.min(2.5, rawZoomScale));
 
   const getNodeCenter = (nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
@@ -147,7 +152,7 @@ export default function DFDCanvas({
   return (
     <div className="relative w-full h-full">
       {/* Zoom controls */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col gap-1">
+      <div className="absolute top-4 right-4 z-20 flex flex-col gap-1 items-center">
         <button
           onClick={zoomIn}
           className="w-8 h-8 rounded-lg bg-slate-800/80 backdrop-blur border border-white/10 text-white text-sm hover:bg-slate-700 transition-colors flex items-center justify-center"
@@ -155,6 +160,9 @@ export default function DFDCanvas({
         >
           +
         </button>
+        <div className="px-2 py-0.5 rounded text-[10px] text-slate-400 bg-slate-800/60 backdrop-blur border border-white/5 font-mono">
+          {Math.round((1 / rawZoomScale) * 100)}%
+        </div>
         <button
           onClick={zoomOut}
           className="w-8 h-8 rounded-lg bg-slate-800/80 backdrop-blur border border-white/10 text-white text-sm hover:bg-slate-700 transition-colors flex items-center justify-center"
@@ -164,7 +172,7 @@ export default function DFDCanvas({
         </button>
         <button
           onClick={resetView}
-          className="w-8 h-8 rounded-lg bg-slate-800/80 backdrop-blur border border-white/10 text-white text-xs hover:bg-slate-700 transition-colors flex items-center justify-center"
+          className="w-8 h-8 rounded-lg bg-slate-800/80 backdrop-blur border border-white/10 text-white text-xs hover:bg-slate-700 transition-colors flex items-center justify-center mt-1"
           title="Reset View"
         >
           ⟲
@@ -272,30 +280,35 @@ export default function DFDCanvas({
                   </circle>
                 </>
               )}
-              {/* Flow label on hover or when current */}
-              {(isCurrent || isHovered) && (
-                <g>
-                  <rect
-                    x={(getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2 - 50}
-                    y={(getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 - 18}
-                    width="100"
-                    height="16"
-                    rx="4"
-                    fill="rgba(15,23,42,0.9)"
-                    stroke={isCurrent ? '#22d3ee44' : '#47556944'}
-                    strokeWidth="0.5"
-                  />
-                  <text
-                    x={(getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2}
-                    y={(getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 - 8}
-                    textAnchor="middle"
-                    className="text-[8px] font-medium pointer-events-none"
-                    fill={isCurrent ? '#67e8f9' : '#94a3b8'}
-                  >
-                    {flow.label}
-                  </text>
-                </g>
-              )}
+              {/* Flow label on hover or when current - counter-scaled */}
+              {(isCurrent || isHovered) && (() => {
+                const labelX = (getNodeCenter(flow.from).x + getNodeCenter(flow.to).x) / 2;
+                const labelY = (getNodeCenter(flow.from).y + getNodeCenter(flow.to).y) / 2 - 8;
+                return (
+                  <g>
+                    <rect
+                      x={labelX - 50 * zoomScale}
+                      y={labelY - 12 * zoomScale}
+                      width={100 * zoomScale}
+                      height={16 * zoomScale}
+                      rx={4 * zoomScale}
+                      fill="rgba(15,23,42,0.9)"
+                      stroke={isCurrent ? '#22d3ee44' : '#47556944'}
+                      strokeWidth={0.5 * zoomScale}
+                    />
+                    <text
+                      x={labelX}
+                      y={labelY}
+                      textAnchor="middle"
+                      className="font-medium pointer-events-none"
+                      fontSize={8 * zoomScale}
+                      fill={isCurrent ? '#67e8f9' : '#94a3b8'}
+                    >
+                      {flow.label}
+                    </text>
+                  </g>
+                );
+              })()}
             </g>
           );
         })}
@@ -375,38 +388,41 @@ export default function DFDCanvas({
                 />
               )}
 
-              {/* Icon */}
+              {/* Icon - counter-scaled for zoom */}
               <text
                 x={node.x + NODE_WIDTH / 2}
                 y={node.y + 24}
                 textAnchor="middle"
                 className="pointer-events-none select-none"
-                fontSize="16"
+                fontSize={16 * zoomScale}
+                transform={`translate(${node.x + NODE_WIDTH / 2}, ${node.y + 24}) scale(${zoomScale}) translate(${-node.x - NODE_WIDTH / 2}, ${-node.y - 24})`}
               >
                 {node.icon}
               </text>
 
-              {/* Label */}
+              {/* Label - counter-scaled for zoom */}
               <text
                 x={node.x + NODE_WIDTH / 2}
                 y={node.y + 40}
                 textAnchor="middle"
                 className="pointer-events-none select-none"
-                fontSize="9.5"
+                fontSize={9.5 * zoomScale}
                 fontWeight="600"
                 fill="white"
+                transform={`translate(${node.x + NODE_WIDTH / 2}, ${node.y + 40}) scale(${zoomScale}) translate(${-node.x - NODE_WIDTH / 2}, ${-node.y - 40})`}
               >
                 {node.label}
               </text>
 
-              {/* Type badge */}
+              {/* Type badge - counter-scaled for zoom */}
               <text
                 x={node.x + NODE_WIDTH / 2}
                 y={node.y + 52}
                 textAnchor="middle"
                 className="pointer-events-none select-none"
-                fontSize="7"
+                fontSize={7 * zoomScale}
                 fill="#64748b"
+                transform={`translate(${node.x + NODE_WIDTH / 2}, ${node.y + 52}) scale(${zoomScale}) translate(${-node.x - NODE_WIDTH / 2}, ${-node.y - 52})`}
               >
                 {node.type === 'external' ? 'External Entity' : node.type === 'process' ? 'Process' : 'Data Store'}
               </text>
